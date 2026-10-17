@@ -1,0 +1,10 @@
+{"episode": 0, "seed": 0, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 42.7, "instruction": "Pick the peeler from the drawer and place it on the counter.", "video": "i2/videos/ep00_seed0.mp4"}
+{"episode": 1, "seed": 1, "success": true, "num_steps": 304, "horizon": 750, "wall_time_s": 24.4, "instruction": "Pick the measuring cup from the drawer and place it on the counter.", "video": "i2/videos/ep01_seed1.mp4"}
+{"episode": 2, "seed": 2, "success": true, "num_steps": 336, "horizon": 750, "wall_time_s": 17.9, "instruction": "Pick the rolling pin from the drawer and place it on the counter.", "video": "i2/videos/ep02_seed2.mp4"}
+{"episode": 3, "seed": 3, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 41.5, "instruction": "Pick the whisk from the drawer and place it on the counter.", "video": "i2/videos/ep03_seed3.mp4"}
+{"episode": 4, "seed": 4, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 43.2, "instruction": "Pick the tongs from the drawer and place it on the counter.", "video": "i2/videos/ep04_seed4.mp4"}
+{"episode": 5, "seed": 5, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 38.4, "instruction": "Pick the ladle from the drawer and place it on the counter.", "video": "i2/videos/ep05_seed5.mp4"}
+{"episode": 6, "seed": 6, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 39.5, "instruction": "Pick the ladle from the drawer and place it on the counter.", "video": "i2/videos/ep06_seed6.mp4"}
+{"episode": 7, "seed": 7, "success": true, "num_steps": 272, "horizon": 750, "wall_time_s": 25.6, "instruction": "Pick the peeler from the drawer and place it on the counter.", "video": "i2/videos/ep07_seed7.mp4"}
+{"episode": 8, "seed": 8, "success": true, "num_steps": 304, "horizon": 750, "wall_time_s": 24.7, "instruction": "Pick the whisk from the drawer and place it on the counter.", "video": "i2/videos/ep08_seed8.mp4"}
+{"episode": 9, "seed": 9, "success": true, "num_steps": 576, "horizon": 750, "wall_time_s": 35.2, "instruction": "Pick the tongs from the drawer and place it on the counter.", "video": "i2/videos/ep09_seed9.mp4"}

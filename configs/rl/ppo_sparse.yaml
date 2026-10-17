@@ -1,0 +1,19 @@
+# Algorithm settings shared by every single-task expert: StructRL's GR00T-N1.5 PPO recipe with
+# the Sparse-RL (terminal-only) reward. Only overrides live here; optimizer, PPO, chunk length 16,
+# SDE noise and the trained parameters are inherited from base_config (docs/rl_recon.md Q1-Q2).
+# expert_training/build_config.py applies this file, then the hardware file (a key repeated there wins).
+
+# StructRL's GR00T-N1.5 PPO config for RoboCasa365, path relative to third_party/StructRL
+# (setup_upstream.sh copies StructRL's configs/ into RLinf; composed with its Hydra defaults).
+base_config: RLinf/examples/embodiment/config/robocasa365_ppo_gr00t_composite_seen.yaml
+
+# Terminal-only reward: +1 at the first step with success, nothing else. These are the RLinf keys
+# StructRL's Sparse-RL launcher sets (launch/train_gr00t_sparse_rl_ppo.sbatch:119-120), applied verbatim.
+reward:
+  env.train.dense_reward.enabled: false
+  env.train.done_shift.enabled: true    # delay the success done by one chunk so GAE carries the +1 back
+
+iterations: 100            # runner.max_epochs; StructRL reports global_step_100 (README:88-92)
+train_seed_offset: 100000  # env.train.seed: env seeds 100000 + global env id, never 0-99 or 1000-1019
+save_every: 10             # runner.save_interval (StructRL's value)
+keep_last_raw: 2           # newest raw checkpoints kept whole for --resume; older ones keep only full_weights.pt

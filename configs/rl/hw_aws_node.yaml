@@ -1,0 +1,13 @@
+# One AWS node with 8 GPUs (H200, B200 or B300) and ~192 vCPUs: the real expert training run.
+# Keeps StructRL's 512 rollouts per iteration and its training mode; iterations (100) and
+# save_every (10) come from ppo_sparse.yaml. Batch sizes count chunk samples; our task has 47
+# chunks per rollout epoch (prime), so num_envs * rollout_epochs must equal global_batch.
+# 128 envs x 4 epochs instead of StructRL's 256 x 2: 128 MuJoCo processes (16 per GPU) leave CPU
+# headroom on ~192 vCPUs, where 256 would oversubscribe it; the price is 4 serial rollout epochs
+# per iteration instead of 2 (docs/rl_recon.md Q7, Q9).
+gpus: 8
+num_envs: 128          # env.train.total_num_envs (16 per GPU)
+rollout_epochs: 4      # algorithm.rollout_epoch -> 512 rollouts per iteration
+global_batch: 512      # actor.global_batch_size (64 per GPU) -> 47 optimizer steps per iteration
+micro_batch: 16        # actor.micro_batch_size, StructRL's value (gradient accumulation 4)
+tuning: as_structrl    # StructRL's mode unchanged: action head + value head, VLM frozen

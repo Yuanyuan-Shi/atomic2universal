@@ -1,0 +1,13 @@
+# Pick-and-place pair 1: placing into a container (cabinet) vs. retrieving from one (drawer).
+name: pnp_cabinet_drawer
+tasks:
+  i1:
+    name: PickPlaceCounterToCabinet
+    mode: atomic
+    reference_sr: 0.63
+    reference_note: "RoboCasa365 paper, Table 11 (pretrain + target fine-tune)"
+  i2:
+    name: PickPlaceDrawerToCounter
+    mode: atomic
+    reference_sr: 0.50
+    reference_note: "RoboCasa365 paper, Table 11 (pretrain + target fine-tune)"

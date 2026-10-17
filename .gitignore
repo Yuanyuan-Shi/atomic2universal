@@ -1,0 +1,10 @@
+checkpoints/
+third_party/
+.venv-fetch/
+**/videos/
+baseline_eval/results/_smoke/
+__pycache__/
+*.pyc
+.env
+expert_training/runs/**/checkpoints/
+checkpoints/experts/

@@ -1,0 +1,15 @@
+# Workstation smoke test: 1x RTX Pro 6000 (96 GB), 32 CPU cores, 62 GB RAM. Proves the pipeline
+# end to end; not an expert. Applied after ppo_sparse.yaml, so iterations and save_every here win.
+# Batch sizes count chunk samples. Our task has ceil(750/16) = 47 chunks per rollout epoch (prime),
+# so RLinf's divisibility rules need num_envs * rollout_epochs == global_batch (docs/rl_recon.md Q7).
+# Memory fallback 1, smoke test only (docs/rl_smoke_test.md): Ray's 95% host-RAM kill threshold
+# stopped 8 envs x 1 epoch at startup and 4 envs x 2 epochs at a checkpoint save (each env process
+# holds 3.5-6 GB RSS, the actor spikes to ~17 GB while saving); 2 envs x 4 epochs keeps 8 rollouts.
+gpus: 1
+num_envs: 2            # env.train.total_num_envs; 3.5-6 GB RAM per env process (measured)
+rollout_epochs: 4      # algorithm.rollout_epoch -> 2 x 4 = 8 rollouts per iteration
+global_batch: 8        # actor.global_batch_size -> 47 optimizer steps per iteration
+micro_batch: 4         # actor.micro_batch_size (gradient accumulation 2)
+tuning: as_structrl    # train what StructRL trains: action head + value head, VLM frozen
+iterations: 3          # capped for the smoke test
+save_every: 1          # a raw checkpoint after every iteration

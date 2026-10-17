@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Baseline closed-loop evaluation</title><style>
+:root { color-scheme: light dark; --bg:#f6f8fa; --card:#ffffff; --text:#1f2328; --muted:#656d76;
+        --line:#d0d7de; --ok:#1a7f37; --bad:#cf222e; --accent:#0969da; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#0d1117; --card:#161b22; --text:#e6edf3; --muted:#8d96a0;
+          --line:#30363d; --ok:#3fb950; --bad:#f85149; --accent:#4493f8; } }
+body { margin:0; padding:24px; background:var(--bg); color:var(--text); font:14px/1.5 system-ui,sans-serif; }
+h1 { font-size:20px; margin:0 0 16px; }
+.tabs { display:flex; flex-wrap:wrap; gap:4px; border-bottom:1px solid var(--line); margin-bottom:20px; }
+.tab { font:inherit; color:var(--muted); background:none; border:1px solid transparent; border-bottom:none;
+       border-radius:6px 6px 0 0; padding:8px 14px; cursor:pointer; margin-bottom:-1px; }
+.tab.active { color:var(--text); background:var(--card); border-color:var(--line); font-weight:600; }
+.tab small { color:var(--muted); font-weight:400; margin-left:6px; }
+[hidden] { display:none !important; }
+.meta { color:var(--muted); margin:0 0 16px; }
+.note { color:var(--muted); font-size:12px; margin:8px 0 28px; }
+table { border-collapse:collapse; background:var(--card); }
+th, td { border:1px solid var(--line); padding:6px 10px; text-align:left; }
+section { margin-bottom:32px; }
+section header { display:flex; flex-wrap:wrap; align-items:baseline; gap:12px;
+                 border-bottom:1px solid var(--line); padding-bottom:8px; margin-bottom:12px; }
+h2 { font-size:16px; margin:0; }
+.tag { font-size:12px; color:var(--muted); border:1px solid var(--line); border-radius:4px; padding:1px 6px; }
+.rate { margin-left:auto; font-weight:600; }
+.rate small { font-weight:400; color:var(--muted); margin-left:8px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px; }
+.card { margin:0; background:var(--card); border:2px solid var(--line); border-radius:8px; overflow:hidden; }
+.card.success { border-color:var(--ok); }
+.card.fail { border-color:var(--bad); }
+video { display:block; width:100%; background:#000; }
+figcaption { display:flex; justify-content:space-between; gap:8px; padding:6px 8px; font-size:12px; color:var(--muted); }
+.badge { font-weight:700; }
+.badge.success { color:var(--ok); }
+.badge.fail { color:var(--bad); }
+</style></head>
+<body>
+<h1>Baseline closed-loop evaluation</h1>
+<nav class="tabs"><button class="tab" data-tab="pnp_cabinet_drawer">pnp_cabinet_drawer<small>2 tasks</small></button></nav>
+<div class="panel" id="pnp_cabinet_drawer">
+<p class="meta">Pairing: pnp_cabinet_drawer · checkpoint: checkpoints/sft_joint/gr00t_n1-5/foundation_model_learning/target_posttraining/atomic_seen/checkpoint-60000</p>
+<table><tr><th>Role</th><th>Task</th><th>Split</th><th>Success</th><th>SR</th><th>95% CI</th>
+<th>Reference</th><th>Reference note</th></tr>
+<tr><td>I1 · atomic</td><td>PickPlaceCounterToCabinet</td><td>target</td><td>6/10</td><td>60%</td><td>[31%, 83%]</td><td>63%</td><td>RoboCasa365 paper, Table 11 (pretrain + target fine-tune)</td></tr>
+<tr><td>I2 · atomic</td><td>PickPlaceDrawerToCounter</td><td>target</td><td>5/10</td><td>50%</td><td>[24%, 76%]</td><td>50%</td><td>RoboCasa365 paper, Table 11 (pretrain + target fine-tune)</td></tr>
+</table>
+<p class="note">With 10 episodes per task the 95% CI spans roughly ±25–30 points; treat these as a sanity check.</p>
+<section><header><h2>PickPlaceCounterToCabinet</h2><span class="tag">I1 · atomic</span><span class="rate">60%<small>95% CI [31%, 83%] · reference 63%</small></span></header><div class="grid"><figure class="card success"><video src="pnp_cabinet_drawer/i1/videos/ep00_seed0.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 00 · seed 0 · 464 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card fail"><video src="pnp_cabinet_drawer/i1/videos/ep01_seed1.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 01 · seed 1 · 750 steps</span><span class="badge fail">FAIL</span></figcaption></figure>
+<figure class="card success"><video src="pnp_cabinet_drawer/i1/videos/ep02_seed2.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 02 · seed 2 · 208 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card fail"><video src="pnp_cabinet_drawer/i1/videos/ep03_seed3.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 03 · seed 3 · 750 steps</span><span class="badge fail">FAIL</span></figcaption></figure>
+<figure class="card success"><video src="pnp_cabinet_drawer/i1/videos/ep04_seed4.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 04 · seed 4 · 384 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card success"><video src="pnp_cabinet_drawer/i1/videos/ep05_seed5.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 05 · seed 5 · 224 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card success"><video src="pnp_cabinet_drawer/i1/videos/ep06_seed6.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 06 · seed 6 · 256 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card fail"><video src="pnp_cabinet_drawer/i1/videos/ep07_seed7.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 07 · seed 7 · 750 steps</span><span class="badge fail">FAIL</span></figcaption></figure>
+<figure class="card success"><video src="pnp_cabinet_drawer/i1/videos/ep08_seed8.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 08 · seed 8 · 352 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card fail"><video src="pnp_cabinet_drawer/i1/videos/ep09_seed9.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 09 · seed 9 · 750 steps</span><span class="badge fail">FAIL</span></figcaption></figure></div></section>
+<section><header><h2>PickPlaceDrawerToCounter</h2><span class="tag">I2 · atomic</span><span class="rate">50%<small>95% CI [24%, 76%] · reference 50%</small></span></header><div class="grid"><figure class="card fail"><video src="pnp_cabinet_drawer/i2/videos/ep00_seed0.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 00 · seed 0 · 750 steps</span><span class="badge fail">FAIL</span></figcaption></figure>
+<figure class="card success"><video src="pnp_cabinet_drawer/i2/videos/ep01_seed1.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 01 · seed 1 · 304 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card success"><video src="pnp_cabinet_drawer/i2/videos/ep02_seed2.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 02 · seed 2 · 336 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card fail"><video src="pnp_cabinet_drawer/i2/videos/ep03_seed3.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 03 · seed 3 · 750 steps</span><span class="badge fail">FAIL</span></figcaption></figure>
+<figure class="card fail"><video src="pnp_cabinet_drawer/i2/videos/ep04_seed4.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 04 · seed 4 · 750 steps</span><span class="badge fail">FAIL</span></figcaption></figure>
+<figure class="card fail"><video src="pnp_cabinet_drawer/i2/videos/ep05_seed5.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 05 · seed 5 · 750 steps</span><span class="badge fail">FAIL</span></figcaption></figure>
+<figure class="card fail"><video src="pnp_cabinet_drawer/i2/videos/ep06_seed6.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 06 · seed 6 · 750 steps</span><span class="badge fail">FAIL</span></figcaption></figure>
+<figure class="card success"><video src="pnp_cabinet_drawer/i2/videos/ep07_seed7.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 07 · seed 7 · 272 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card success"><video src="pnp_cabinet_drawer/i2/videos/ep08_seed8.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 08 · seed 8 · 304 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card success"><video src="pnp_cabinet_drawer/i2/videos/ep09_seed9.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 09 · seed 9 · 576 steps</span><span class="badge success">SUCCESS</span></figcaption></figure></div></section>
+</div>
+<script>
+const tabs = Array.from(document.querySelectorAll(".tab"));
+function showTab(tabId) {
+  tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === tabId));
+  document.querySelectorAll(".panel").forEach((panel) => {
+    const isActive = panel.id === tabId;
+    panel.hidden = !isActive;
+    if (!isActive) panel.querySelectorAll("video").forEach((video) => video.pause());
+  });
+  history.replaceState(null, "", "#" + tabId);
+}
+tabs.forEach((tab) => tab.addEventListener("click", () => showTab(tab.dataset.tab)));
+const requested = location.hash.slice(1);
+showTab(tabs.some((tab) => tab.dataset.tab === requested) ? requested : tabs[0].dataset.tab);
+</script>
+</body></html>

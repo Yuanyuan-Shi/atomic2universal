@@ -1,0 +1,28 @@
+Serving /mnt1/atomic2universal/checkpoints/experts/PickPlaceCounterToCabinet/step_3 on port 5555 from conda env a2u-policy
+/home/james/anaconda3/envs/a2u-policy/lib/python3.11/site-packages/albumentations/__init__.py:13: UserWarning: A new version of Albumentations is available: 2.0.8 (you have 1.4.18). Upgrade using: pip install -U albumentations. To disable automatic update checks, set the environment variable NO_ALBUMENTATIONS_UPDATE to 1.
+  check_for_updates()
+`use_fast` is set to `True` but the image processor class does not have a fast version.  Falling back to the slow version.
+/home/james/anaconda3/envs/a2u-policy/lib/python3.11/site-packages/tyro/_parsers.py:347: UserWarning: The field `api-token` is annotated with type `<class 'str'>`, but the default value `None` has type `<class 'NoneType'>`. We'll try to handle this gracefully, but it may cause unexpected behavior.
+  warnings.warn(message)
+Model not found or avail in the huggingface hub. Loading from local path: /mnt1/atomic2universal/checkpoints/experts/PickPlaceCounterToCabinet/step_3
+Loading pretrained dual brain from /mnt1/atomic2universal/checkpoints/experts/PickPlaceCounterToCabinet/step_3
+Tune backbone vision tower: True
+Tune backbone LLM: False
+Tune action head projector: True
+Tune action head DiT: True
+Model not found or avail in the huggingface hub. Loading from local path: /mnt1/atomic2universal/checkpoints/experts/PickPlaceCounterToCabinet/step_3
+Tune backbone llm: False
+Tune backbone visual: True
+Total number of DiT parameters:  550386688
+Total number of SelfAttentionTransformer parameters:  201433088
+Tune action head projector: True
+Tune action head diffusion model: True
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 19.15it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 19.12it/s]
+Tune backbone llm: False
+Tune backbone visual: True
+Tune action head projector: True
+Tune action head diffusion model: True
+/mnt1/atomic2universal/third_party/Isaac-GR00T/gr00t/data/transform/state_action.py:257: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.detach().clone() or sourceTensor.detach().clone().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.statistics[key] = torch.tensor(value)
+Set action denoising steps to 4
+Server is ready and listening on tcp://0.0.0.0:5555

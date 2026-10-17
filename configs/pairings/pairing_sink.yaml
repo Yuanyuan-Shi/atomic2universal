@@ -1,0 +1,18 @@
+# Sink family: I1 is not among the 18 fine-tuned atomic tasks.
+name: pairing_sink
+tasks:
+  i1:
+    name: PickPlaceCounterToSink
+    mode: atomic
+    reference_sr: null
+    reference_note: "Not a target task; no published per-task result"
+  i2:
+    name: TurnOnSinkFaucet
+    mode: atomic
+    reference_sr: 0.63
+    reference_note: "RoboCasa365 paper, Table 11 (pretrain + target fine-tune)"
+  composite:
+    name: WashLettuce
+    mode: composite
+    reference_sr: 0.67
+    reference_note: "From the composite_seen fine-tuned checkpoint; not comparable to checkpoint-60000"

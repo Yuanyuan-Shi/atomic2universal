@@ -1,0 +1,17 @@
+{
+  "pairing": "pnp_cabinet_drawer",
+  "role": "i1",
+  "task": "PickPlaceCounterToCabinet",
+  "mode": "atomic",
+  "split": "target",
+  "checkpoint": "checkpoints/sft_joint/gr00t_n1-5/foundation_model_learning/target_posttraining/atomic_seen/checkpoint-60000",
+  "num_episodes": 10,
+  "num_success": 6,
+  "success_rate": 0.6,
+  "ci95": [
+    0.313,
+    0.832
+  ],
+  "reference_sr": 0.63,
+  "reference_note": "RoboCasa365 paper, Table 11 (pretrain + target fine-tune)"
+}

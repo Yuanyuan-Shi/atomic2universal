@@ -1,0 +1,18 @@
+# Pairing #3: hard skill dependency (insert the mug before pressing). Ablation with a weaker I1 teacher.
+name: pairing_preparecoffee
+tasks:
+  i1:
+    name: CoffeeSetupMug
+    mode: atomic
+    reference_sr: 0.60
+    reference_note: "RoboCasa365 paper, Table 11 (pretrain + target fine-tune)"
+  i2:
+    name: TurnOnMicrowave
+    mode: atomic
+    reference_sr: 0.70
+    reference_note: "RoboCasa365 paper, Table 11 (pretrain + target fine-tune)"
+  composite:
+    name: PrepareCoffee
+    mode: composite
+    reference_sr: 0.13
+    reference_note: "Source unverified; likely a composite-fine-tuned model"

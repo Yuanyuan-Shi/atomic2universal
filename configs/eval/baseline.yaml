@@ -1,0 +1,11 @@
+# HOW baseline evaluation runs. Pairing configs define WHAT is evaluated.
+checkpoint: checkpoints/sft_joint/gr00t_n1-5/foundation_model_learning/target_posttraining/atomic_seen/checkpoint-60000
+split: target           # split behind the Table 11 numbers; a task entry may override it
+num_episodes: 10        # episode k uses seed = seed_start + k (target split has 10 scenes; scenes may repeat across seeds)
+seed_start: 0
+action_horizon: 16      # confirmed: official run_eval.py --n_action_steps 16 executes the full 16-step chunk per query
+video:
+  camera: robot0_agentview_left   # confirmed: the official eval's video camera (first policy camera); policy obs stay 256x256
+  width: 512            # 512x512 needs a separate sim.render(...) and a vertical flip (raw MuJoCo frames are upside down)
+  height: 512
+  fps: 20               # control_freq is 20 Hz, so one frame per env step plays in real time

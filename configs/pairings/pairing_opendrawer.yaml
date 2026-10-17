@@ -1,0 +1,18 @@
+# Pairing #1: hard skill dependency (the drawer must open before picking). Primary experiment.
+name: pairing_opendrawer
+tasks:
+  i1:
+    name: OpenDrawer
+    mode: atomic
+    reference_sr: 0.70
+    reference_note: "RoboCasa365 paper, Table 11 (pretrain + target fine-tune)"
+  i2:
+    name: PickPlaceDrawerToCounter
+    mode: atomic
+    reference_sr: 0.50
+    reference_note: "RoboCasa365 paper, Table 11 (pretrain + target fine-tune)"
+  composite:
+    name: DeliverStraw
+    mode: composite
+    reference_sr: 0.03
+    reference_note: "Source unverified; likely a composite-fine-tuned model"

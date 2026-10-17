@@ -1,0 +1,10 @@
+{"episode": 0, "seed": 0, "success": true, "num_steps": 464, "horizon": 750, "wall_time_s": 33.9, "instruction": "Pick the cup from the counter and place it in the cabinet.", "video": "i1/videos/ep00_seed0.mp4"}
+{"episode": 1, "seed": 1, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 38.1, "instruction": "Pick the cucumber from the counter and place it in the cabinet.", "video": "i1/videos/ep01_seed1.mp4"}
+{"episode": 2, "seed": 2, "success": true, "num_steps": 208, "horizon": 750, "wall_time_s": 19.3, "instruction": "Pick the egg from the counter and place it in the cabinet.", "video": "i1/videos/ep02_seed2.mp4"}
+{"episode": 3, "seed": 3, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 46.3, "instruction": "Pick the cheese grater from the counter and place it in the cabinet.", "video": "i1/videos/ep03_seed3.mp4"}
+{"episode": 4, "seed": 4, "success": true, "num_steps": 384, "horizon": 750, "wall_time_s": 18.5, "instruction": "Pick the soap dispenser from the counter and place it in the cabinet.", "video": "i1/videos/ep04_seed4.mp4"}
+{"episode": 5, "seed": 5, "success": true, "num_steps": 224, "horizon": 750, "wall_time_s": 20.6, "instruction": "Pick the squash from the counter and place it in the cabinet.", "video": "i1/videos/ep05_seed5.mp4"}
+{"episode": 6, "seed": 6, "success": true, "num_steps": 256, "horizon": 750, "wall_time_s": 23.8, "instruction": "Pick the straw from the counter and place it in the cabinet.", "video": "i1/videos/ep06_seed6.mp4"}
+{"episode": 7, "seed": 7, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 41.9, "instruction": "Pick the straw from the counter and place it in the cabinet.", "video": "i1/videos/ep07_seed7.mp4"}
+{"episode": 8, "seed": 8, "success": true, "num_steps": 352, "horizon": 750, "wall_time_s": 22.3, "instruction": "Pick the yogurt from the counter and place it in the cabinet.", "video": "i1/videos/ep08_seed8.mp4"}
+{"episode": 9, "seed": 9, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 50.9, "instruction": "Pick the cereal from the counter and place it in the cabinet.", "video": "i1/videos/ep09_seed9.mp4"}
