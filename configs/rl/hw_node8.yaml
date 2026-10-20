@@ -1,0 +1,16 @@
+# One cluster node with 8 GPUs (B200 or B300): the real expert training run. Schmidt Sciences cluster
+# (docs/cluster.md): a job gets at most 124 CPU cores and 124 x 12000 MB = 1419 GiB of host RAM on either
+# GPU type (MaxCPUsPerNode, MaxMemPerCPU), so one file serves both. Keeps StructRL's 512 rollouts per iteration
+# and its training mode; iterations (100) and save_every (5) come from ppo_sparse.yaml. Batch sizes count
+# chunk samples; our task has 47 chunks per rollout epoch (prime), so num_envs * rollout_epochs = global_batch.
+# Sizing from docs/rl_smoke_test.md (per env process 5.2-7.3 GiB RSS, ~1 core): 64 envs x 7.3 = 467 GiB, plus
+# rollout workers 8 x 8.6, actors 8 x 14, env workers 13, Ray 60 and the save spike 30 = 284 GiB -> <= 751 GiB,
+# 53% of 1419 (rule: < 80%); 64 env processes + 24 workers fit 124 cores. 128 x 4 would need 128 cores (> 124)
+# and up to 1218 GiB (86%), so it breaks both rules; the price is 8 serial rollout epochs instead of 4.
+gpus: 8
+num_envs: 64           # env.train.total_num_envs (8 per GPU)
+rollout_epochs: 8      # algorithm.rollout_epoch -> 512 rollouts per iteration
+global_batch: 512      # actor.global_batch_size (64 per GPU) -> 47 optimizer steps per iteration
+micro_batch: 16        # actor.micro_batch_size, StructRL's value (gradient accumulation 4)
+sharding_strategy: shard_grad_op  # actor.fsdp_config.sharding_strategy, StructRL's value
+tuning: as_structrl    # StructRL's mode unchanged: action head + value head, VLM frozen

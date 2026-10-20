@@ -15,5 +15,12 @@ reward:
 
 iterations: 100            # runner.max_epochs; StructRL reports global_step_100 (README:88-92)
 train_seed_offset: 100000  # env.train.seed: env seeds 100000 + global env id, never 0-99 or 1000-1019
-save_every: 10             # runner.save_interval (StructRL's value)
+save_every: 5              # runner.save_interval; StructRL uses 10. 5 (user decision 2026-10-17): less lost if the budget ends the run
 keep_last_raw: 2           # newest raw checkpoints kept whole for --resume; older ones keep only full_weights.pt
+save_best_window: 5        # also keep checkpoints/best: weights at the best mean training success over 5 iterations (user decision 2026-10-20)
+
+# Metrics: RLinf's MetricLogger backends (runner.logger.logger_backends) and W&B project (runner.logger.project_name).
+# W&B run id, resume, group, job type, tags and entity come from WANDB_* set by train_expert.sh; run name, run
+# config extras and the extra metrics from expert_training/startup_hooks/a2u_run_metrics.py.
+loggers: [tensorboard, wandb]
+wandb_project: atomic2universal

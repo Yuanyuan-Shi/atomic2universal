@@ -12,7 +12,8 @@ Usage: bash setup/setup_policy.sh [-h]
 Builds the conda env "${POLICY_ENV:-a2u-policy}" (Python ${POLICY_PYTHON:-3.11}) with the
 robocasa-benchmark Isaac-GR00T fork (pinned), torch 2.7.1+cu128 and flash-attn 2.8.3, verifies
 CUDA + flash-attn on the GPU, then writes setup/requirements.policy.lock.txt.
-Takes no positional arguments. Environment overrides: POLICY_ENV, POLICY_PYTHON.
+Takes no positional arguments. Environment overrides: POLICY_ENV, POLICY_PYTHON, FLASH_ATTN_CUDA_ARCHS
+(default 120), FLASH_ATTN_WHEEL (install this prebuilt flash_attn 2.8.3 wheel for torch 2.7.1+cu128 instead of building).
 EOF
 }
 
@@ -47,6 +48,8 @@ CUDA_TOOLKIT_CHANNEL="nvidia/label/cuda-12.8.1"
 CUDA_TOOLKIT_PACKAGES=("cuda-version=12.8" cuda-nvcc cuda-cudart-dev cuda-cccl cuda-driver-dev cuda-nvrtc-dev
   cuda-nvtx-dev cuda-profiler-api libcublas-dev libcurand-dev libcusolver-dev libcusparse-dev)
 FLASH_ATTN_BUILD_JOBS="${FLASH_ATTN_BUILD_JOBS:-6}"  # each nvcc job peaks at ~8 GB of RAM
+FLASH_ATTN_CUDA_ARCHS="${FLASH_ATTN_CUDA_ARCHS:-120}"  # e.g. "90;100;120" on the cluster (H100/H200, B200/B300)
+FLASH_ATTN_WHEEL="${FLASH_ATTN_WHEEL:-}"
 
 log() { echo "[setup_policy] $*"; }
 
@@ -95,6 +98,11 @@ if ! python -c "import gr00t, diffusers, zmq" >/dev/null 2>&1; then
     --extra-index-url "$TORCH_INDEX"
 fi
 
+if ! python -c "import flash_attn" >/dev/null 2>&1 && [ -n "$FLASH_ATTN_WHEEL" ]; then
+  [ -f "$FLASH_ATTN_WHEEL" ] || { echo "ERROR: FLASH_ATTN_WHEEL $FLASH_ATTN_WHEEL not found" >&2; exit 1; }
+  log "installing prebuilt $FLASH_ATTN_WHEEL"
+  pip install --no-deps "$FLASH_ATTN_WHEEL"
+fi
 if ! python -c "import flash_attn" >/dev/null 2>&1; then
   if [ -x "$CUDA_TOOLKIT_PREFIX/bin/nvcc" ] && ! "$CUDA_TOOLKIT_PREFIX/bin/nvcc" --version | grep -q "release 12.8"; then
     log "removing $CUDA_TOOLKIT_PREFIX (not CUDA 12.8)"
@@ -105,14 +113,14 @@ if ! python -c "import flash_attn" >/dev/null 2>&1; then
     conda create -y -p "$CUDA_TOOLKIT_PREFIX" -c "$CUDA_TOOLKIT_CHANNEL" -c conda-forge \
       "${CUDA_TOOLKIT_PACKAGES[@]}"
   fi
-  log "building flash-attn $FLASH_ATTN_VERSION from source for sm_120 (~30 min, $FLASH_ATTN_BUILD_JOBS jobs)"
+  log "building flash-attn $FLASH_ATTN_VERSION from source for sm_$FLASH_ATTN_CUDA_ARCHS (~25 min per arch, $FLASH_ATTN_BUILD_JOBS jobs)"
   pip install ninja packaging psutil wheel
   pip uninstall -y flash-attn  # drop any wheel that cannot load on this machine
   # FORCE_BUILD skips flash-attn's own attempt to fetch the (GLIBC 2.32) release wheel.
   CUDA_HOME="$CUDA_TOOLKIT_PREFIX" PATH="$CUDA_TOOLKIT_PREFIX/bin:$PATH" \
     CPATH="$CUDA_TOOLKIT_PREFIX/targets/x86_64-linux/include${CPATH:+:$CPATH}" \
     LIBRARY_PATH="$CUDA_TOOLKIT_PREFIX/targets/x86_64-linux/lib${LIBRARY_PATH:+:$LIBRARY_PATH}" \
-    FLASH_ATTN_CUDA_ARCHS="120" FLASH_ATTENTION_FORCE_BUILD="TRUE" \
+    FLASH_ATTN_CUDA_ARCHS="$FLASH_ATTN_CUDA_ARCHS" FLASH_ATTENTION_FORCE_BUILD="TRUE" \
     MAX_JOBS="$FLASH_ATTN_BUILD_JOBS" NVCC_THREADS="4" \
     pip install --no-build-isolation --no-deps --no-binary flash-attn "flash-attn==$FLASH_ATTN_VERSION"
 fi
@@ -147,6 +155,7 @@ pip freeze --exclude-editable > "$ROOT/setup/requirements.policy.lock.txt"
   echo "# editable installs (third_party, pinned commits):"
   echo "# gr00t (Isaac-GR00T robocasa-benchmark fork) @ $GROOT_COMMIT"
   echo "# torch index: $TORCH_INDEX; conda-forge python=$(python -c 'import platform; print(platform.python_version())')"
-  echo "# flash_attn built from the PyPI sdist: FLASH_ATTN_CUDA_ARCHS=120, nvcc 12.8 ($CUDA_TOOLKIT_CHANNEL)"
+  if [ -n "$FLASH_ATTN_WHEEL" ]; then echo "# flash_attn: prebuilt wheel $(basename "$FLASH_ATTN_WHEEL") (FLASH_ATTN_WHEEL)"
+  else echo "# flash_attn built from the PyPI sdist: FLASH_ATTN_CUDA_ARCHS=$FLASH_ATTN_CUDA_ARCHS, nvcc 12.8 ($CUDA_TOOLKIT_CHANNEL)"; fi
 } >> "$ROOT/setup/requirements.policy.lock.txt"
 log "OK: policy env '$ENV_NAME' ready (lock: setup/requirements.policy.lock.txt)"

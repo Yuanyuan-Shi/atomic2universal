@@ -277,3 +277,88 @@ so do not chain it.
   value_head tensors, all bf16, `Gr00tPolicy` load as in the eval server without missing/unexpected-weight warnings, one dummy action chunk),
   then renames it to `step_<N>/` with `export_info.json`. `run_baseline.py --checkpoint DIR` (relative to the project root, must hold
   `config.json`; the launched server serves it) and `--seed-start N`; `summary.json` records `checkpoint` as given and `seed_start`.
+
+## Stage 2 Phase 6: Schmidt Sciences cluster (2026-10-17)
+Cluster facts, limits and the resource request: `docs/cluster.md`. Project root
+`/scratch/schmidt/ssci-ys-shigroup/atomic2universal` (= `/weka/scratch/...`), git `main` at the workstation's pushed commit
+`2378ec7` at the start; StructRL re-cloned from `github.com/amazon-science/StructRL` at `6caba1f` (clean), upstream
+checkouts by its `setup_upstream.sh` at the commits in the table above.
+
+**Build:** Miniforge 25.3.1 in `third_party/miniforge3` (no conda on the cluster; sha256-checked installer). Envs
+built on a CPU node (`agentic` partition) with the unchanged `setup_sim.sh`, `setup_rl.sh --variant blackwell
+--flash-attn-wheel W`, `setup_policy.sh` (`FLASH_ATTN_WHEEL=W`); GPU verification and locks on a GPU node.
+`a2u-sim` / `a2u-policy` in `third_party/miniforge3/envs/`, the RL env in `third_party/conda_envs/a2u-rl-blackwell`.
+Assets downloaded by RoboCasa's script into `third_party/robocasa` and linked into StructRL's robocasa as on the
+workstation (6035 fixture files hard-linked). checkpoint-60000 fetched by `setup/fetch_checkpoint.sh` with no
+`HF_TOKEN` (anonymous; 7.1 GB, every shard of the index present).
+**Arch list:** CUDA extensions are not compiled here. The only one, flash-attn 2.8.3, is the official release wheel
+`flash_attn-2.8.3+cu12torch2.7cxx11abiTRUE-cp311-cp311-linux_x86_64.whl` (sha256 `cd1a45eb…a805af`, renamed to the
+canonical file name), which holds cubins for sm_80, sm_90, sm_100, sm_120 and no PTX (`cuobjdump`). nvcc 12.8 (the
+torch build) cannot target sm_103, and flash-attn's build has no PTX option, so neither `"9.0;10.0;10.3;12.0"` nor
+`"9.0;10.0+PTX;12.0"` applies literally; B300 (sm_103) runs the sm_100 cubins (same major version), checked on a B300.
+
+**GPU checks** (`third_party/phase_b/gpu_check.sbatch`, 1 GPU):
+| Check | B300 (gb301, job 1117071) | B200 (gb205, job 1117150) |
+|---|---|---|
+| torch / CUDA / device / capability | 2.7.1+cu128, 12.8, NVIDIA B300 SXM6 AC, (10, 3) | 2.7.1+cu128, 12.8, NVIDIA B200, (10, 0) |
+| arch list | sm_75 sm_80 sm_86 sm_90 sm_100 sm_120 compute_120 | same |
+| bf16 4096² matmul mean | 51.03 (RL env), 51.11 (policy env) | 51.09 (RL env), 51.06 (policy env) |
+| setup_rl.sh / setup_policy.sh verification | pass (flash-attn vs SDPA 9.8e-4; cuDNN 90701; NCCL 2.26.2) / pass | pass (9.8e-4; same) / pass (1.95e-3) |
+| RLinf `get_model` + `predict_action_batch` | 2.728 B params bf16, 22.4 s; actions (1,16,12), logprobs (1,4,16,12), values (1,1), finite; 5.45 GiB | same shapes, finite; 25.3 s; 5.45 GiB |
+| 1-episode eval (`run_baseline`, seed 0) | server ready 18 s; FAIL at 750 steps, 62.6 s; video h264 512x512, 751 frames | ready 20 s; FAIL at 750 steps, 68.4 s; same video format |
+| network (api.wandb.ai, huggingface.co, pypi.org) | 200, 200, 200 | 200, 200, 200 |
+
+**Deviations (Phase 6):**
+- **Hardware file** `hw_aws_node.yaml` renamed `hw_node8.yaml` and resized: **64 envs × 8 rollout epochs** (was 128 × 4),
+  global 512, micro 16. A job gets at most 124 cores and 1419 GiB RAM on B200 and B300 (`docs/cluster.md`); 128 envs
+  exceed the cores and, at the measured 7.3 GiB/env worst case, 80% of RAM (sizing in the file).
+- **save_every 5** (was 10; StructRL 10), user decision 2026-10-17: less training lost if the budget ends the run.
+- **wandb 0.26.1** instead of StructRL's pinned 0.25.0 in the RL env: the freeze pins protobuf 7.35.0, and wandb 0.25
+  has no protobuf-7 bindings (`ImportError: cannot import name 'Imports' from wandb.proto.wandb_telemetry_pb2`; the
+  same on the workstation, where only TensorBoard was used). 0.26.1 is the first release with them; `setup_rl.sh`
+  replaces it. Nothing else imports wandb.
+- **flash-attn** official wheel (above) in both the RL and policy envs instead of the workstation's sm_120 source build;
+  same version 2.8.3. `setup_policy.sh` gained `FLASH_ATTN_WHEEL` and `FLASH_ATTN_CUDA_ARCHS` overrides (default unchanged).
+- **Unpinned drift** in `a2u-sim`/`a2u-policy` (glfw 2.11.0, platformdirs 4.13.3) pinned back to the workstation's
+  2.10.2 / 4.13.2. The workstation locks also list ROS packages from its `PYTHONPATH`; those are absent here.
+  Cluster freezes: `setup/requirements.{sim,policy,rl-blackwell}.cluster.lock.txt` (the workstation locks are unchanged).
+  Seed 0 failed in both 1-episode checks, as in Stage 1c (seed 0 failed there too); one episode only shows the pipeline works.
+- **Training-scene seeds** (`startup_hooks/a2u_scene_seeds.py`, was `seed_hook/sitecustomize.py`): reset k of env i
+  now uses the explicit seed 100000 + i + num_envs·k (k continues after a resume) instead of one RNG stream per env
+  seeded once with 100000 + i. Same seed partition (all >= 100000), but every training scene now has a recorded integer
+  seed, so each iteration's 512 seeds can be counted and logged, and a resumed job does not replay earlier scenes.
+- **W&B** through RLinf's own logger, enabled by config (`runner.logger.logger_backends: [tensorboard, wandb]`); run id,
+  resume, group, job type, tags from `WANDB_*` set by `train_expert.sh`; run name, run config extras and extra metrics
+  from `startup_hooks/a2u_run_metrics.py` (no StructRL/RLinf edits). Metrics of an iteration go out together against
+  the axis `iteration` instead of RLinf's `step=` argument, so a resumed job may repeat iterations without W&B
+  rejecting non-increasing steps.
+- **`.env` format:** it uses `KEY = value` lines, which `source` cannot parse; `setup/dotenv.sh` loads it (never echoing
+  values) in `fetch_checkpoint.sh`, `train_expert.sh` and the job scripts.
+- **Ray isolation:** `train_expert.sh` sets a per-job `RAY_TMPDIR`, so RLinf's `ray.init(address="auto")` cannot join
+  another user's Ray cluster on a shared node, and checks only the user's own `gcs_server`.
+
+**Phase C findings and fixes (2026-10-17 to 2026-10-19):**
+- **Thread limit (Ray hang).** Slurm propagates the login shell's soft `ulimit -u` (4096; hard 8192 on login, 8,254,777 on
+  the GPU nodes) into jobs. Ray starts ~1 worker per core with dozens of threads each; the raylet died in `pthread_create`
+  (EAGAIN) and the RLinf driver hung in `RegisterClient` for 26 h (~711k SU) before it was found. `train_expert.sh` now
+  raises the soft limit to the hard one and refuses < 65536; a watchdog stops a run whose `train.log` is silent for 20 min
+  or whose first iteration takes > 60 min; prune output moved to `prune.log`; Ray session logs are saved to
+  `<run_dir>/ray_logs/`; `submit_training.sh --time` sizes the wall time (pilot 2 h).
+- **SIGPIPE.** `nvidia-smi | head -n 1` under `pipefail` killed the first pilot job on an 8-GPU node (exit 141);
+  replaced by `nvidia-smi -i 0`.
+- **W&B entity.** `.env` held an e-mail address as `WANDB_ENTITY`; set to the team `yus047-` (user decision).
+  `submit_training.sh` now checks the key and the entity on the login node before submitting.
+- **8-GPU weight-sync bug (RLinf), fixed.** The pilot's PPO had approx_kl ~7.8 and clip fraction ~0.5 from the first
+  update. Diagnosis (`third_party/phase_c/`, runs on 1, 2 and 8 GPUs): identical inputs, VLM features and forward-time
+  weight checksums on both sides, yet the trainer's log-probs differed from the rollout's by 5-25 nats per chunk at 8 GPUs
+  (exactly 0 at 1-2 GPUs). A fresh load of checkpoint-60000 matched the FSDP trainer exactly but not the rollout workers;
+  element-wise comparison showed 17 rollout tensors with **the right values in the wrong order**: the DiT's
+  `transformer_blocks.*.norm1.linear.weight` and `proj_out_1.weight` (3072 x 1536). Cause: RLinf's
+  `EmbodiedFSDPActor.get_rollout_state_dict` passes the *sharded* state dict (`full_state_dict=False`) to the weight
+  syncer, which rebuilds tensors with `DTensor.full_tensor()`; with FSDP `shard_grad_op` over 8 ranks this scrambles those
+  tensors. Fix (`expert_training/startup_hooks/a2u_weight_sync_fix.py`, via sitecustomize, no StructRL/RLinf edit): sync
+  the full state dict (`full_state_dict=True`, FSDP's gather, the path that writes the correct `full_weights.pt`). Verified
+  on 8 GPUs: pre-update log-ratio 0.0000 on all ranks, approx_kl 0.0097, clip fraction 0.062, rollout model identical to a
+  fresh load except the randomly initialised value head. Saved checkpoints were never affected (`full_weights.pt` of the
+  pilot correlates 1.0000 with checkpoint-60000). The workstation smoke test (1 GPU) was unaffected.
+- `sharding_strategy` is now an explicit hardware-file setting (`shard_grad_op`, StructRL's value; unchanged).

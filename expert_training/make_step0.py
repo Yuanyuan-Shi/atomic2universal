@@ -11,7 +11,7 @@ module's parameter and buffer names to CPU tensors, written with torch.save's zi
 the key set). StructRL's RLinf and Isaac-GR00T are put first on sys.path, as in train_expert.sh.
 CUDA must be visible (the Eagle backbone queries it at import); no GPU memory is used.
 
-Usage (RL env, project root): python expert_training/make_step0.py --task <Task> --hw <workstation|aws_node>
+Usage (RL env, project root): python expert_training/make_step0.py --task <Task> --hw <workstation|node8>
     [--run-dir DIR]   (default: expert_training/runs/<Task>/step0-control)
 """
 

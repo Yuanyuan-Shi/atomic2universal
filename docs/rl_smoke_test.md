@@ -23,7 +23,7 @@ iteration. `build_config.py --dry-run`: all 5 RLinf divisibility rules OK (376 %
 
 Fallback steps: **1 needed** (fewer envs, smaller micro-batch; 8 rollouts/iteration and 47 optimizer steps kept).
 **2 is a no-op**: StructRL already freezes the VLM, LLM, vision tower and `mlp1` (`docs/rl_recon.md`). **3 (LoRA) not needed**,
-and not implemented. These are smoke-test settings only; `hw_aws_node.yaml` is unchanged. The failed runs' raw checkpoints
+and not implemented. These are smoke-test settings only; `hw_aws_node.yaml` (now `hw_node8.yaml`) is unchanged. The failed runs' raw checkpoints
 (29 GiB, attempt 2 only; attempt 1 never saved) were deleted after this run passed. Their `train.log`,
 `resolved_config.yaml` and tensorboard files are kept.
 
@@ -109,7 +109,7 @@ Both: 10 lines in `episodes.jsonl` (seeds 0-9); `summary.json` with `checkpoint`
 different per-seed pattern. step_0 is bit-identical to the bf16 weights Stage 1 serves, so that gap is run-to-run evaluation
 variation, not the export. Do not read the 7/10 vs 7/10 as an RL result (CI about ±25-30 points).
 
-## AWS estimate: 100 full iterations on one 8-GPU node (`hw_aws_node.yaml`)
+## AWS estimate: 100 full iterations on one 8-GPU node (`hw_aws_node.yaml`, renamed `hw_node8.yaml` and resized for the cluster in Phase 6)
 Configuration: 128 envs (16 per GPU) x 4 rollout epochs = 512 rollouts, global 512, micro 16 (grad. accumulation 4), 47 optimizer
 steps/iteration, 3008 chunk samples per rank, save every 10 iterations.
 **Wall time: about 6.5-14 h (most likely about 9 h).** Assumptions:

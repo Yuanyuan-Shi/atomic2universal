@@ -34,7 +34,7 @@ SUBPATH="gr00t_n1-5/foundation_model_learning/target_posttraining/atomic_seen/ch
 DEST="$ROOT/checkpoints/sft_joint"
 VENV="$ROOT/.venv-fetch"
 
-[ -f "$ROOT/.env" ] && { set -a; source "$ROOT/.env"; set +a; }
+source "$ROOT/setup/dotenv.sh" && load_dotenv "$ROOT/.env"  # HF_TOKEN if set; unset = anonymous download
 
 if [ ! -d "$VENV" ]; then
   python3 -m venv "$VENV" || {

@@ -144,6 +144,15 @@ if [ -n "$clobbered" ]; then
   pip_ install --no-deps --force-reinstall "${idx[@]}" $clobbered
 fi
 
+# The list pins wandb 0.25.0 with protobuf 7.35.0, but wandb 0.25 ships bindings only for protobuf 3-6, so
+# `import wandb` fails. wandb 0.26.1 is the first release with protobuf 7 bindings (its other requirements are
+# met by the list); the W&B logger needs it, nothing else imports wandb.
+if [ "$("$PY" -m pip show wandb 2>/dev/null | sed -n 's/^Version: //p')" = 0.25.0 ]; then
+  log "replacing wandb 0.25.0 (cannot import with protobuf 7.35.0) by 0.26.1"
+  pip_ install --no-deps wandb==0.26.1
+fi
+"$PY" -c "import wandb" || die "wandb does not import"
+
 # ---- 4. flash-attn 2.8.3 (PyPI has only the sdist; release wheels need GLIBC >= 2.32) ----
 if ! "$PY" -c "import flash_attn" >/dev/null 2>&1; then
   if [ -n "$FA_WHEEL" ]; then

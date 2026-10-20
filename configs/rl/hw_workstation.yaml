@@ -10,6 +10,7 @@ num_envs: 2            # env.train.total_num_envs; 3.5-6 GB RAM per env process 
 rollout_epochs: 4      # algorithm.rollout_epoch -> 2 x 4 = 8 rollouts per iteration
 global_batch: 8        # actor.global_batch_size -> 47 optimizer steps per iteration
 micro_batch: 4         # actor.micro_batch_size (gradient accumulation 2)
+sharding_strategy: shard_grad_op  # actor.fsdp_config.sharding_strategy, StructRL's value
 tuning: as_structrl    # train what StructRL trains: action head + value head, VLM frozen
 iterations: 3          # capped for the smoke test
 save_every: 1          # a raw checkpoint after every iteration

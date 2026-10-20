@@ -72,7 +72,7 @@ Grasping thin or awkward objects is the bottleneck for both.
 
 ```bash
 cd /mnt1/atomic2universal
-bash expert_training/train_expert.sh --task PickPlaceCounterToCabinet --hw workstation   # or --hw aws_node
+bash expert_training/train_expert.sh --task PickPlaceCounterToCabinet --hw workstation   # cluster: expert_training/slurm/submit_training.sh (hw_node8)
 conda run -n a2u-sim python expert_training/export_expert.py --task <Task> --run-dir <run_dir> --step latest
 conda run -n a2u-sim python -m baseline_eval.run_baseline --pairing pnp_cabinet_drawer --roles i1 \
   --checkpoint checkpoints/experts/<Task>/step_<N> --seed-start 0 --num-episodes 10 \
