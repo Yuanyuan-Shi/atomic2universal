@@ -1,0 +1,6 @@
+# Which RL expert evaluation baseline_eval/build_report.py shows below the baseline of each task set:
+# per role, a run_baseline --results-root folder holding <pairing>/<role>/summary.json, or null for a
+# pending row. Use the same seeds as the baseline (seeds 0-9) so the two tables compare.
+pnp_cabinet_drawer:
+  i1: expert_training/results/PickPlaceCounterToCabinet/step_95
+  i2: expert_training/results/PickPlaceDrawerToCounter/step_100

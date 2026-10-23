@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Baseline closed-loop evaluation</title><style>
+<title>Closed-loop evaluation</title><style>
 :root { color-scheme: light dark; --bg:#f6f8fa; --card:#ffffff; --text:#1f2328; --muted:#656d76;
         --line:#d0d7de; --ok:#1a7f37; --bad:#cf222e; --accent:#0969da; }
 @media (prefers-color-scheme: dark) {
@@ -19,6 +19,8 @@ h1 { font-size:20px; margin:0 0 16px; }
 .note { color:var(--muted); font-size:12px; margin:8px 0 28px; }
 table { border-collapse:collapse; background:var(--card); }
 th, td { border:1px solid var(--line); padding:6px 10px; text-align:left; }
+h1.section-title { margin:40px 0 16px; padding-top:24px; border-top:2px solid var(--line); }
+tr.pending td { color:var(--muted); font-style:italic; }
 section { margin-bottom:32px; }
 section header { display:flex; flex-wrap:wrap; align-items:baseline; gap:12px;
                  border-bottom:1px solid var(--line); padding-bottom:8px; margin-bottom:12px; }
@@ -67,6 +69,34 @@ figcaption { display:flex; justify-content:space-between; gap:8px; padding:6px 8
 <figure class="card success"><video src="pnp_cabinet_drawer/i2/videos/ep07_seed7.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 07 · seed 7 · 272 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
 <figure class="card success"><video src="pnp_cabinet_drawer/i2/videos/ep08_seed8.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 08 · seed 8 · 304 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
 <figure class="card success"><video src="pnp_cabinet_drawer/i2/videos/ep09_seed9.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 09 · seed 9 · 576 steps</span><span class="badge success">SUCCESS</span></figcaption></figure></div></section>
+<h1 class="section-title">RL Expert closed-loop evaluation</h1>
+<p class="meta">Pairing: pnp_cabinet_drawer · checkpoints: I1 checkpoints/experts/PickPlaceCounterToCabinet/step_95 (seeds 0–9) · I2 checkpoints/experts/PickPlaceDrawerToCounter/step_100 (seeds 0–9)</p>
+<table><tr><th>Role</th><th>Task</th><th>Split</th><th>Success</th><th>SR</th><th>95% CI</th>
+<th>Reference</th><th>Reference note</th></tr>
+<tr><td>I1 · RL expert</td><td>PickPlaceCounterToCabinet</td><td>target</td><td>9/10</td><td>90%</td><td>[60%, 98%]</td><td>63%</td><td>RoboCasa365 paper, Table 11 (pretrain + target fine-tune)</td></tr>
+<tr><td>I2 · RL expert</td><td>PickPlaceDrawerToCounter</td><td>target</td><td>8/10</td><td>80%</td><td>[49%, 94%]</td><td>50%</td><td>RoboCasa365 paper, Table 11 (pretrain + target fine-tune)</td></tr>
+</table>
+<p class="note">With 10 episodes per task the 95% CI spans roughly ±25–30 points; treat these as a sanity check.</p>
+<section><header><h2>PickPlaceCounterToCabinet</h2><span class="tag">I1 · RL expert</span><span class="rate">90%<small>95% CI [60%, 98%] · baseline 60% · reference 63%</small></span></header><div class="grid"><figure class="card success"><video src="_rl_experts/pnp_cabinet_drawer/i1/videos/ep00_seed0.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 00 · seed 0 · 224 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card success"><video src="_rl_experts/pnp_cabinet_drawer/i1/videos/ep01_seed1.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 01 · seed 1 · 240 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card success"><video src="_rl_experts/pnp_cabinet_drawer/i1/videos/ep02_seed2.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 02 · seed 2 · 192 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card fail"><video src="_rl_experts/pnp_cabinet_drawer/i1/videos/ep03_seed3.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 03 · seed 3 · 750 steps</span><span class="badge fail">FAIL</span></figcaption></figure>
+<figure class="card success"><video src="_rl_experts/pnp_cabinet_drawer/i1/videos/ep04_seed4.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 04 · seed 4 · 320 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card success"><video src="_rl_experts/pnp_cabinet_drawer/i1/videos/ep05_seed5.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 05 · seed 5 · 192 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card success"><video src="_rl_experts/pnp_cabinet_drawer/i1/videos/ep06_seed6.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 06 · seed 6 · 224 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card success"><video src="_rl_experts/pnp_cabinet_drawer/i1/videos/ep07_seed7.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 07 · seed 7 · 240 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card success"><video src="_rl_experts/pnp_cabinet_drawer/i1/videos/ep08_seed8.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 08 · seed 8 · 336 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card success"><video src="_rl_experts/pnp_cabinet_drawer/i1/videos/ep09_seed9.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 09 · seed 9 · 208 steps</span><span class="badge success">SUCCESS</span></figcaption></figure></div></section>
+<section><header><h2>PickPlaceDrawerToCounter</h2><span class="tag">I2 · RL expert</span><span class="rate">80%<small>95% CI [49%, 94%] · baseline 50% · reference 50%</small></span></header><div class="grid"><figure class="card success"><video src="_rl_experts/pnp_cabinet_drawer/i2/videos/ep00_seed0.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 00 · seed 0 · 320 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card success"><video src="_rl_experts/pnp_cabinet_drawer/i2/videos/ep01_seed1.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 01 · seed 1 · 304 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card success"><video src="_rl_experts/pnp_cabinet_drawer/i2/videos/ep02_seed2.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 02 · seed 2 · 320 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card success"><video src="_rl_experts/pnp_cabinet_drawer/i2/videos/ep03_seed3.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 03 · seed 3 · 704 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card fail"><video src="_rl_experts/pnp_cabinet_drawer/i2/videos/ep04_seed4.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 04 · seed 4 · 750 steps</span><span class="badge fail">FAIL</span></figcaption></figure>
+<figure class="card success"><video src="_rl_experts/pnp_cabinet_drawer/i2/videos/ep05_seed5.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 05 · seed 5 · 240 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card fail"><video src="_rl_experts/pnp_cabinet_drawer/i2/videos/ep06_seed6.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 06 · seed 6 · 750 steps</span><span class="badge fail">FAIL</span></figcaption></figure>
+<figure class="card success"><video src="_rl_experts/pnp_cabinet_drawer/i2/videos/ep07_seed7.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 07 · seed 7 · 272 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card success"><video src="_rl_experts/pnp_cabinet_drawer/i2/videos/ep08_seed8.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 08 · seed 8 · 288 steps</span><span class="badge success">SUCCESS</span></figcaption></figure>
+<figure class="card success"><video src="_rl_experts/pnp_cabinet_drawer/i2/videos/ep09_seed9.mp4" controls muted loop playsinline preload="metadata"></video><figcaption><span>episode 09 · seed 9 · 544 steps</span><span class="badge success">SUCCESS</span></figcaption></figure></div></section>
 </div>
 <script>
 const tabs = Array.from(document.querySelectorAll(".tab"));
