@@ -1,7 +1,7 @@
 # atomic2universal — Progress
 
 Living progress log. Update it at the end of every stage and remove content that no longer applies.
-**Last updated:** 2026-10-22, after Stage 2b (100-episode evaluation of both experts and the baseline).
+**Last updated:** 2026-10-23, after Stage 3a (MTD distillation code + 2-D toy validation).
 
 ## Research question
 
@@ -22,7 +22,19 @@ experts into one student with multi-teacher distillation, MTD) better than **com
 | 2, Phases 1–5 | RL expert pipeline (StructRL/RLinf PPO, Sparse-RL) + workstation smoke test | Done |
 | 2, Phase 6 | Real expert training on one 8-GPU cluster node (Schmidt Sciences, `hw_node8`) | PickPlaceCounterToCabinet (run `20261019-0256-node8`, step_95) and PickPlaceDrawerToCounter (run `20261020-1728-node8`, step_100) trained and exported |
 | 2b | 100-episode evaluation, seeds 0–99, no video (workstation): experts vs baseline | Done (step0 runs dropped by user decision) |
-| later | Other experts (same command, different `--task`); `distillation/` (MTD) | Not started |
+| 3a | MTD distillation code (`distillation/`, shared with GR00T), 90 tests, 2-D toy validation (CPU) | Done (commit `9e3324a`) |
+| later | Other experts (same command, different `--task`); MTD on the GR00T experts | Not started |
+
+## Stage 3a: distillation toy (`distillation/toy/RESULTS.md`)
+
+- Shared code: `distillation/{interfaces,flow_utils,dmd_loss,router,step}.py`. Paper convention (τ = 1 noise) for the
+  method math; only `flow_utils.py` converts from GR00T's native one. `distill_step` fixes the update order for GR00T.
+- Toy (exact GMM teachers, one seed): the spec's DMD + FM (α 0.5/0.5, λ_IDA 0.99, K_ψ 1) **fails** the pass bar
+  (W2 0.076/0.074 vs. 4-step teacher 0.091/0.093 and initial 0.19/0.16; success 0.79/0.70). With **K_ψ = 5** W2 drops to
+  0.046–0.057, about 2× better than the 4-step teacher; no setting clearly passes all readings of the bar.
+- DMD only collapses each mode (success 0.97 = collapse, not quality); FM only copies and compounds the 4-step
+  teacher's bias (W2 ≈ 0.15); λ_IDA ≤ 0.9 drifts off the modes, λ_IDA = 0 diverges (no NaN — watch `loss_fake`).
+- **Recommended for GR00T:** α_DMD = α_FM = 0.5, K_ψ = 5, λ_IDA ∈ {0.99, 1}; log `loss_fake` and `vdiff_norm`.
 
 ## Stage 2b: 100-episode evaluation (seeds 0–99, `eval_n100/`)
 
@@ -117,4 +129,5 @@ python -m http.server 8081 --directory expert_training/results/PickPlaceCounterT
 1. Decide whether the ~10-point expert gains are enough to distill from, or train longer / select
    checkpoints on seeds 1000–1019 first (the gains are not significant with unpaired CIs).
 2. Add the other three pick-and-place tasks (look up their Table 11 references first).
-3. `distillation/README.md` still mentions "composite tasks"; reword it to the pick-and-place question.
+3. Before the GR00T MTD run: wrap the GR00T action head as a `VelocityModel` (cached backbone features as `cond`,
+   t-bucketing inside the model) and confirm K_ψ = 5 / λ_IDA on a second toy seed if cheap.
