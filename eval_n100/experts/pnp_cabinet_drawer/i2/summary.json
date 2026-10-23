@@ -1,0 +1,19 @@
+{
+  "pairing": "pnp_cabinet_drawer",
+  "role": "i2",
+  "task": "PickPlaceDrawerToCounter",
+  "mode": "atomic",
+  "split": "target",
+  "checkpoint": "checkpoints/experts/PickPlaceDrawerToCounter/step_100",
+  "seed_start": 0,
+  "num_episodes": 100,
+  "num_success": 69,
+  "success_rate": 0.69,
+  "ci95": [
+    0.594,
+    0.772
+  ],
+  "reference_sr": 0.5,
+  "reference_note": "RoboCasa365 paper, Table 11 (pretrain + target fine-tune)",
+  "video": false
+}

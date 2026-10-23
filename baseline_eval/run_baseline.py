@@ -5,7 +5,8 @@ For each requested role (default: every role of the config, in config order) it 
 one JSON line per finished episode to
 <results-root>/<pairing>/<role>/episodes.jsonl (flushed and fsynced), and writes summary.json
 (success rate with a Wilson 95% CI) once all N episodes exist. Recorded episodes are skipped, so
-re-running resumes; --overwrite starts the requested roles fresh. The policy runs behind the
+re-running resumes; --overwrite starts the requested roles fresh. --no-video skips the MP4s
+(episode lines get "video": null, summary.json "video": false). The policy runs behind the
 official GR00T server: --launch-server starts one on --port for this run and always stops it;
 without it, a server started with evaluation/serve_policy.sh must already listen on --port.
 
@@ -13,7 +14,7 @@ Usage (from the project root, in the a2u-sim env):
     python -m baseline_eval.run_baseline --pairing pnp_cabinet_drawer [--roles i1 i2 ...]
         [--num-episodes 10] [--results-root baseline_eval/results] [--overwrite]
         [--port 5555] [--launch-server] [--eval-config configs/eval/baseline.yaml]
-        [--checkpoint DIR] [--seed-start N]
+        [--checkpoint DIR] [--seed-start N] [--no-video]
 """
 
 import argparse
@@ -41,7 +42,7 @@ class ResultsError(RuntimeError):
     """Recorded results are inconsistent with the requested run."""
 
 
-def read_episodes(role_dir: Path, pairing_dir: Path, eval_spec: EvalSpec) -> dict[int, dict]:
+def read_episodes(role_dir: Path, pairing_dir: Path, eval_spec: EvalSpec, video: bool) -> dict[int, dict]:
     """Return the recorded episodes of one role by index, after checking each line."""
     path = role_dir / "episodes.jsonl"
     if not path.exists():
@@ -62,7 +63,10 @@ def read_episodes(role_dir: Path, pairing_dir: Path, eval_spec: EvalSpec) -> dic
             raise ResultsError(f"{where} records episode {episode} a second time; delete one line or use --overwrite")
         if record["seed"] != eval_spec.seed_start + episode:
             raise ResultsError(f"{where}: seed {record['seed']} does not match seed_start + episode; use --overwrite")
-        if not (pairing_dir / record["video"]).is_file():
+        if (record["video"] is not None) != video:
+            recorded_as = "without" if record["video"] is None else "with"
+            raise ResultsError(f"{where} was recorded {recorded_as} video; match --no-video or use --overwrite")
+        if video and not (pairing_dir / record["video"]).is_file():
             raise ResultsError(f"{where}: video {pairing_dir / record['video']} is missing; use --overwrite")
         episodes[episode] = record
     return episodes
@@ -83,7 +87,8 @@ def append_episode(path: Path, record: dict) -> None:
         os.fsync(file.fileno())
 
 
-def write_summary(pairing: str, role: str, task: TaskSpec, eval_spec: EvalSpec, episodes: list[dict], role_dir: Path) -> None:
+def write_summary(pairing: str, role: str, task: TaskSpec, eval_spec: EvalSpec, episodes: list[dict], role_dir: Path,
+                  video: bool) -> None:
     """Write summary.json for exactly the given (complete) list of episodes."""
     num_success = sum(1 for episode in episodes if episode["success"])
     low, high = wilson_interval(num_success, len(episodes))
@@ -92,7 +97,7 @@ def write_summary(pairing: str, role: str, task: TaskSpec, eval_spec: EvalSpec, 
         "checkpoint": eval_spec.checkpoint, "seed_start": eval_spec.seed_start,
         "num_episodes": len(episodes), "num_success": num_success,
         "success_rate": num_success / len(episodes), "ci95": [round(low, 3), round(high, 3)],
-        "reference_sr": task.reference_sr, "reference_note": task.reference_note,
+        "reference_sr": task.reference_sr, "reference_note": task.reference_note, "video": video,
     }
     temporary_path = role_dir / "summary.json.tmp"
     temporary_path.write_text(json.dumps(summary, indent=2) + "\n")
@@ -102,12 +107,12 @@ def write_summary(pairing: str, role: str, task: TaskSpec, eval_spec: EvalSpec, 
 
 
 def run_role(pairing_dir: Path, role: str, task: TaskSpec, pending: list[int], policy: Policy | None,
-             eval_spec: EvalSpec) -> None:
+             eval_spec: EvalSpec, record_video: bool) -> None:
     """Run the pending episodes of one role, recording each as soon as it finishes."""
     for episode in pending:
         seed = eval_spec.seed_start + episode
-        video = f"{role}/videos/ep{episode:02d}_seed{seed}.mp4"
-        result = run_episode(task, seed, policy, eval_spec, pairing_dir / video)
+        video = f"{role}/videos/ep{episode:02d}_seed{seed}.mp4" if record_video else None
+        result = run_episode(task, seed, policy, eval_spec, None if video is None else pairing_dir / video)
         append_episode(pairing_dir / role / "episodes.jsonl", {"episode": episode, **result, "video": video})
         prefix = f"[{role} {task.name}] episode {episode:02d} seed {seed}"
         outcome = "SUCCESS" if result["success"] else "FAIL"
@@ -143,12 +148,13 @@ def run(args: argparse.Namespace) -> None:
     if num_episodes <= 0:
         raise ConfigError(f"--num-episodes must be positive, got {num_episodes}")
     pairing_dir = args.results_root / args.pairing
+    video = not args.no_video
     pending: dict[str, list[int]] = {}
     for role in roles:
         role_dir = pairing_dir / role
         if args.overwrite:
             clear_role(role_dir)
-        recorded = read_episodes(role_dir, pairing_dir, eval_spec)
+        recorded = read_episodes(role_dir, pairing_dir, eval_spec, video)
         pending[role] = [episode for episode in range(num_episodes) if episode not in recorded]
         print(f"[{role} {tasks[role].name}] split {tasks[role].split}: {num_episodes - len(pending[role])} of "
               f"{num_episodes} episodes recorded, {len(pending[role])} to run", flush=True)
@@ -164,10 +170,10 @@ def run(args: argparse.Namespace) -> None:
     with server:
         policy = load_policy(eval_spec, port=args.port) if needs_policy else None
         for role, pending_episodes in pending.items():
-            run_role(pairing_dir, role, tasks[role], pending_episodes, policy, eval_spec)
-            episodes = read_episodes(pairing_dir / role, pairing_dir, eval_spec)
+            run_role(pairing_dir, role, tasks[role], pending_episodes, policy, eval_spec, video)
+            episodes = read_episodes(pairing_dir / role, pairing_dir, eval_spec, video)
             write_summary(args.pairing, role, tasks[role], eval_spec,
-                          [episodes[episode] for episode in range(num_episodes)], pairing_dir / role)
+                          [episodes[episode] for episode in range(num_episodes)], pairing_dir / role, video)
 
 
 def parse_args() -> argparse.Namespace:
@@ -185,6 +191,7 @@ def parse_args() -> argparse.Namespace:
                         "(relative to the project root), e.g. checkpoints/experts/<Task>/step_<N>")
     parser.add_argument("--seed-start", type=int, default=None,
                         help="seed of episode 0 (default: seed_start of the eval config)")
+    parser.add_argument("--no-video", action="store_true", help="do not render or write episode videos")
     return parser.parse_args()
 
 

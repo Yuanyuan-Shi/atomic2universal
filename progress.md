@@ -1,7 +1,7 @@
 # atomic2universal — Progress
 
 Living progress log. Update it at the end of every stage and remove content that no longer applies.
-**Last updated:** 2026-10-16, after Stage 2 Phases 1–5 (RL expert pipeline + workstation smoke test).
+**Last updated:** 2026-10-22, after Stage 2b (100-episode evaluation of both experts and the baseline).
 
 ## Research question
 
@@ -20,8 +20,27 @@ experts into one student with multi-teacher distillation, MTD) better than **com
 |---|---|---|
 | 1 / 1c | Eval stack + two-task pick-and-place baseline (`pnp_cabinet_drawer`) | Done |
 | 2, Phases 1–5 | RL expert pipeline (StructRL/RLinf PPO, Sparse-RL) + workstation smoke test | Done |
-| 2, Phase 6 | Real expert training for PickPlaceCounterToCabinet on one 8-GPU AWS node | **Waiting for the user** (instance choice) |
+| 2, Phase 6 | Real expert training on one 8-GPU cluster node (Schmidt Sciences, `hw_node8`) | PickPlaceCounterToCabinet (run `20261019-0256-node8`, step_95) and PickPlaceDrawerToCounter (run `20261020-1728-node8`, step_100) trained and exported |
+| 2b | 100-episode evaluation, seeds 0–99, no video (workstation): experts vs baseline | Done (step0 runs dropped by user decision) |
 | later | Other experts (same command, different `--task`); `distillation/` (MTD) | Not started |
+
+## Stage 2b: 100-episode evaluation (seeds 0–99, `eval_n100/`)
+
+| Task | Baseline (checkpoint-60000) | Expert | Expert − baseline (Newcombe 95% CI) |
+|---|---|---|---|
+| PickPlaceCounterToCabinet | 67/100 [57%, 75%] | step_95: 78/100 [69%, 85%] | +11 pp [−1, +23] |
+| PickPlaceDrawerToCounter | 59/100 [49%, 68%] | step_100: 69/100 [59%, 77%] | +10 pp [−3, +23] |
+
+- Both experts gain ~10 points, but the unpaired Newcombe CIs (the spec's method) include 0. The runs
+  share seeds, so a paired view is sharper: cabinet expert-only 13 vs baseline-only 2 seeds (exact
+  McNemar p = 0.007), drawer 20 vs 10 (p = 0.10). Not in `comparison.md`; an option for the write-up.
+- The 10-episode numbers below were optimistic for the experts (9/10, 8/10) and pessimistic for the
+  baseline (6/10, 5/10). Baseline 67% / 59% vs the paper's 63% / 50%.
+- The experts were not picked by the planned selection on seeds 1000–1019 (step_95 / step_100 came
+  from the cluster runs), so these are not yet "selected checkpoint" final-test numbers.
+- Wall time on the workstation: 2 h 53 min of runs for 400 episodes (experts 38 + 45 min, baseline
+  41 + 48 min); ~19 s per success and ~38 s per failure (750 steps). Video costs almost nothing extra.
+- Files: `eval_n100/comparison.md`, `eval_n100/comparison_table.tex` (`expert_training/compare_models.py`).
 
 ## Baseline (Stage 1c, seeds 0–9, 10 episodes, checkpoint-60000)
 
@@ -31,6 +50,18 @@ experts into one student with multi-teacher distillation, MTD) better than **com
 | PickPlaceDrawerToCounter | 5/10 | [24%, 76%] | 50% | 5 no grasp (drawer starts open) |
 
 Grasping thin or awkward objects is the bottleneck for both.
+
+## RL expert (seeds 0–9, 10 episodes; report section "RL Expert closed-loop evaluation")
+
+| Task | Checkpoint | Success | 95% CI | Baseline | Failures |
+|---|---|---|---|---|---|
+| PickPlaceCounterToCabinet | `checkpoints/experts/PickPlaceCounterToCabinet/step_95` | 9/10 | [60%, 98%] | 6/10 | seed 3 no grasp (cheese grater) |
+| PickPlaceDrawerToCounter | `checkpoints/experts/PickPlaceDrawerToCounter/step_100` | 8/10 | [49%, 94%] | 5/10 | seed 4 no grasp (tongs); seed 6 base drives sideways off the drawer early, no grasp (ladle) |
+
+On the six seeds both solve, cabinet step_95 is faster (mean 248 vs 315 steps). The drawer expert's
+seed-6 failure starts with the base driving sideways off the drawer (the baseline stays put). Results:
+`expert_training/results/<Task>/step_<N>/` (with videos); the report reads which expert evaluation to
+show from `configs/eval/rl_experts.yaml`.
 
 ## Stage 2 so far (PickPlaceCounterToCabinet)
 
@@ -53,7 +84,7 @@ Grasping thin or awkward objects is the bottleneck for both.
   20 (seeds 1000–1019) for checkpoint selection; training scenes are seeded from 100000 upward.
 - **Everything runs in bf16.** The Stage 1 eval casts the fp32 SFT action head to bf16, and so does
   RLinf. StructRL keeps no fp32 master weights, so at lr 1e-5 most updates round away (only 5.2% of
-  action-head values changed in 3 iterations). Watch for this on AWS if success does not rise.
+  action-head values changed in 3 iterations).
 - **Host RAM, not GPU memory, limits RL here.** Each sim process uses 3.5–6 GB of RAM and the actor
   jumps by up to 17 GB at each checkpoint save. The workstation can run 2 envs; the AWS config
   (128 envs × 4 epochs) needs about 0.8–1.2 TiB of host RAM.
@@ -68,7 +99,7 @@ Grasping thin or awkward objects is the bottleneck for both.
 - RL env: `third_party/conda_envs/a2u-rl-blackwell` (StructRL `6caba1f` pins, torch 2.7.1+cu128,
   flash-attn 2.8.3). The frozen H200 env (`a2u-rl`) is a recipe: `setup/setup_rl.sh --variant frozen`.
 
-## How to run
+## How to run (100-episode runs: add `--no-video`, then `python expert_training/compare_models.py`)
 
 ```bash
 cd /mnt1/atomic2universal
@@ -83,9 +114,7 @@ python -m http.server 8081 --directory expert_training/results/PickPlaceCounterT
 
 ## Open items
 
-1. **Phase 6 (AWS):** choose the instance, build the matching RL env there, run 100 iterations
-   (estimated about 6.5–14 h, most likely ~9 h), 100-episode baseline, checkpoint selection on seeds
-   1000–1019, final test on seeds 0–99.
+1. Decide whether the ~10-point expert gains are enough to distill from, or train longer / select
+   checkpoints on seeds 1000–1019 first (the gains are not significant with unpaired CIs).
 2. Add the other three pick-and-place tasks (look up their Table 11 references first).
 3. `distillation/README.md` still mentions "composite tasks"; reword it to the pick-and-place question.
-4. The project is not a git repository yet (`.gitignore` is ready).

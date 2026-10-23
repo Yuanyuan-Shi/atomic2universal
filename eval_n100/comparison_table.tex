@@ -1,0 +1,20 @@
+\begin{tabular}{lrrcrrc}
+\toprule
+ & \multicolumn{3}{c}{PickPlaceCounterToCabinet} & \multicolumn{3}{c}{PickPlaceDrawerToCounter} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7}
+Model & Succ. & SR & 95\% CI & Succ. & SR & 95\% CI \\
+\midrule
+baseline & 67/100 & 67\% & [57\%, 75\%] & 59/100 & 59\% & [49\%, 68\%] \\
+experts & 78/100 & 78\% & [69\%, 85\%] & 69/100 & 69\% & [59\%, 77\%] \\
+\bottomrule
+\end{tabular}
+
+\begin{tabular}{lrcrc}
+\toprule
+ & \multicolumn{2}{c}{PickPlaceCounterToCabinet} & \multicolumn{2}{c}{PickPlaceDrawerToCounter} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+Difference & $\Delta$ (pp) & 95\% CI & $\Delta$ (pp) & 95\% CI \\
+\midrule
+experts $-$ baseline & +11 & [-1, +23] & +10 & [-3, +23] \\
+\bottomrule
+\end{tabular}

@@ -1,4 +1,4 @@
-"""Run one seeded closed-loop episode of a RoboCasa365 task and record it as an MP4.
+"""Run one seeded closed-loop episode of a RoboCasa365 task and record it as an MP4 (or not).
 
 Everything that defines the benchmark comes from the official code: the env is the RoboCasa365
 gym env `robocasa/<task>` built for (split, seed), the instruction is the env's episode metadata,
@@ -6,7 +6,8 @@ success is the env's own `info["success"]`, and the episode length is the task's
 horizon. The loop mirrors the official GR00T eval (`MultiStepWrapper` + `SimulationInferenceClient`):
 each policy query returns a chunk of `action_horizon` actions that are all executed, success is
 read from the last env step of each chunk, and the episode ends on success or at the horizon
-(the last chunk is cut at the horizon). One frame is written per env step, after the reset frame.
+(the last chunk is cut at the horizon). One frame is written per env step, after the reset frame;
+without a video path no frame is rendered for video (policy camera observations are unchanged).
 """
 
 import time
@@ -39,7 +40,7 @@ def _check_camera(env: gym.Env, camera: str) -> None:
 
 
 def _run_chunks(env: gym.Env, observation: dict[str, Any], instruction: str, horizon: int,
-                policy: Policy, eval_spec: EvalSpec, writer: Mp4Writer) -> tuple[bool, int]:
+                policy: Policy, eval_spec: EvalSpec, writer: Mp4Writer | None) -> tuple[bool, int]:
     """Execute action chunks until success at a chunk boundary or the horizon; return (success, steps)."""
     num_steps = 0
     success = False
@@ -47,14 +48,15 @@ def _run_chunks(env: gym.Env, observation: dict[str, Any], instruction: str, hor
         chunk = policy.act(observation, instruction)
         for action_row in chunk[: horizon - num_steps]:
             observation, _, _, _, info = env.step(convert_action(action_row))
-            writer.append(render_frame(env, eval_spec))
+            if writer is not None:
+                writer.append(render_frame(env, eval_spec))
             num_steps += 1
         success = bool(info["success"])
     return success, num_steps
 
 
-def run_episode(task: TaskSpec, seed: int, policy: Policy, eval_spec: EvalSpec, video_path: Path) -> dict:
-    """Run one episode and write its video to `video_path`.
+def run_episode(task: TaskSpec, seed: int, policy: Policy, eval_spec: EvalSpec, video_path: Path | None) -> dict:
+    """Run one episode and write its video to `video_path` (None: no video).
 
     Returns the episode fields of an episodes.jsonl line: seed, success, num_steps, horizon,
     wall_time_s and instruction. The video is written to a temporary file and moved into
@@ -62,20 +64,24 @@ def run_episode(task: TaskSpec, seed: int, policy: Policy, eval_spec: EvalSpec, 
     """
     start_time = time.monotonic()
     horizon = get_task_horizon(task.name)
-    partial_path = video_path.with_suffix(".partial.mp4")
+    partial_path = None if video_path is None else video_path.with_suffix(".partial.mp4")
     env = gym.make(f"robocasa/{task.name}", split=task.split, seed=seed, enable_render=True)
     try:
         observation, _ = env.reset()
         _check_camera(env, eval_spec.video_camera)
         instruction = env.unwrapped.env.get_ep_meta()["lang"]
         policy.reset()
-        with Mp4Writer(partial_path, fps=eval_spec.video_fps) as writer:
-            writer.append(render_frame(env, eval_spec))
-            success, num_steps = _run_chunks(env, observation, instruction, horizon, policy, eval_spec, writer)
-        partial_path.replace(video_path)
+        if partial_path is None:
+            success, num_steps = _run_chunks(env, observation, instruction, horizon, policy, eval_spec, None)
+        else:
+            with Mp4Writer(partial_path, fps=eval_spec.video_fps) as writer:
+                writer.append(render_frame(env, eval_spec))
+                success, num_steps = _run_chunks(env, observation, instruction, horizon, policy, eval_spec, writer)
+            partial_path.replace(video_path)
     finally:
         env.close()
-        partial_path.unlink(missing_ok=True)
+        if partial_path is not None:
+            partial_path.unlink(missing_ok=True)
     return {
         "seed": seed,
         "success": success,

@@ -8,7 +8,8 @@ jobs.tsv), `checkpoints/experts/<Task>/step_<N>/`, `results/<Task>/<label>/`. An
 `build_config.py` (config + checks: `task_registry.py`, `batch_rules.py`), `train_expert.sh` (launch, prune via
 `raw_checkpoints.py`, startup hooks in `startup_hooks/`: scene seeds `a2u_scene_seeds.py`, W&B metadata and extra
 metrics `a2u_run_metrics.py` + `a2u_resources.py`, best checkpoint `a2u_best_checkpoint.py`), `export_expert.py` (StructRL converter, then `verify_expert.py`),
-`make_step0.py` (untrained control), `wandb_log_eval.py` (evaluation results to the W&B run), `slurm/` (cluster
+`make_step0.py` (untrained control), `wandb_log_eval.py` (evaluation results to the W&B run), `compare_models.py`
+(baseline vs experts on the 100-episode runs in `eval_n100/`: Wilson CIs, Newcombe CIs of the gains), `slurm/` (cluster
 jobs). Settings: `configs/rl/`. Background: `docs/rl_recon.md`, `docs/environment.md`, `docs/cluster.md`.
 
 ## Schmidt Sciences cluster (project root /scratch/schmidt/ssci-ys-shigroup/atomic2universal)

@@ -362,3 +362,25 @@ torch build) cannot target sm_103, and flash-attn's build has no PTX option, so 
   fresh load except the randomly initialised value head. Saved checkpoints were never affected (`full_weights.pt` of the
   pilot correlates 1.0000 with checkpoint-60000). The workstation smoke test (1 GPU) was unaffected.
 - `sharding_strategy` is now an explicit hardware-file setting (`shard_grad_op`, StructRL's value; unchanged).
+
+## Stage 2b: 100-episode evaluation (2026-10-22)
+
+- `run_baseline.py --no-video`: no video frames are rendered or written; episode lines get `"video": null` and
+  `summary.json` gets `"video": false`. The env is still built with `enable_render=True`, because the policy's camera
+  observations need it (with `False` RoboCasa returns black images). `summary.json` now always records `video`
+  (`true` for video runs). A results folder recorded with video cannot be resumed without it, and vice versa.
+- Turning video off barely speeds up an episode (a 750-step failure takes ~45 s either way); the policy queries and
+  the simulation dominate.
+- **Scope change (user decision, 2026-10-22):** the two step0 runs (untrained RLinf export) were dropped, leaving four
+  runs (400 episodes): experts i1 (step_95) and i2 (step_100), each only on its own task, and the baseline on both.
+  So there is no step0-vs-baseline check; the 10-episode comparison (baseline 6/10, step0 7/10) is the only one.
+  The queue was swapped after experts_i1 had started; that run kept going, uninterrupted.
+- **Deviations from the spec's commands:** (1) `--launch-server` added to every run. Without it `run_baseline` uses
+  whatever server listens on port 5555 and cannot check which checkpoint that server loaded. (2) tmux is not
+  installed on the workstation (no screen, no sudo), so the runs went one at a time through a `setsid nohup` queue
+  script. It is detached in the same way. Per-run logs and the queue log (start, done, wall time) are in
+  `eval_n100/logs/` (git-ignored).
+- `expert_training/compare_models.py`: the expert-vs-baseline gains use Newcombe's hybrid score interval for two
+  independent proportions (`evaluation/stats.py:newcombe_interval`). The models share seeds 0-99, but GR00T samples
+  noise on every query, so the runs are treated as independent; with positively correlated outcomes the intervals
+  are conservative.

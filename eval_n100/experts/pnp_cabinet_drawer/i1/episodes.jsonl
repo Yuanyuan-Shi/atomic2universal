@@ -1,0 +1,100 @@
+{"episode": 0, "seed": 0, "success": true, "num_steps": 224, "horizon": 750, "wall_time_s": 23.4, "instruction": "Pick the cup from the counter and place it in the cabinet.", "video": null}
+{"episode": 1, "seed": 1, "success": true, "num_steps": 256, "horizon": 750, "wall_time_s": 18.5, "instruction": "Pick the cucumber from the counter and place it in the cabinet.", "video": null}
+{"episode": 2, "seed": 2, "success": true, "num_steps": 192, "horizon": 750, "wall_time_s": 16.2, "instruction": "Pick the egg from the counter and place it in the cabinet.", "video": null}
+{"episode": 3, "seed": 3, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 41.2, "instruction": "Pick the cheese grater from the counter and place it in the cabinet.", "video": null}
+{"episode": 4, "seed": 4, "success": true, "num_steps": 416, "horizon": 750, "wall_time_s": 16.4, "instruction": "Pick the soap dispenser from the counter and place it in the cabinet.", "video": null}
+{"episode": 5, "seed": 5, "success": true, "num_steps": 192, "horizon": 750, "wall_time_s": 16.9, "instruction": "Pick the squash from the counter and place it in the cabinet.", "video": null}
+{"episode": 6, "seed": 6, "success": true, "num_steps": 224, "horizon": 750, "wall_time_s": 19.8, "instruction": "Pick the straw from the counter and place it in the cabinet.", "video": null}
+{"episode": 7, "seed": 7, "success": true, "num_steps": 240, "horizon": 750, "wall_time_s": 18.7, "instruction": "Pick the straw from the counter and place it in the cabinet.", "video": null}
+{"episode": 8, "seed": 8, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 33.4, "instruction": "Pick the yogurt from the counter and place it in the cabinet.", "video": null}
+{"episode": 9, "seed": 9, "success": true, "num_steps": 224, "horizon": 750, "wall_time_s": 23.9, "instruction": "Pick the cereal from the counter and place it in the cabinet.", "video": null}
+{"episode": 10, "seed": 10, "success": true, "num_steps": 272, "horizon": 750, "wall_time_s": 17.0, "instruction": "Pick the boxed drink from the counter and place it in the cabinet.", "video": null}
+{"episode": 11, "seed": 11, "success": true, "num_steps": 176, "horizon": 750, "wall_time_s": 12.6, "instruction": "Pick the tupperware from the counter and place it in the cabinet.", "video": null}
+{"episode": 12, "seed": 12, "success": true, "num_steps": 256, "horizon": 750, "wall_time_s": 21.9, "instruction": "Pick the yogurt from the counter and place it in the cabinet.", "video": null}
+{"episode": 13, "seed": 13, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 37.0, "instruction": "Pick the oil/vinegar bottle from the counter and place it in the cabinet.", "video": null}
+{"episode": 14, "seed": 14, "success": true, "num_steps": 224, "horizon": 750, "wall_time_s": 16.4, "instruction": "Pick the yogurt from the counter and place it in the cabinet.", "video": null}
+{"episode": 15, "seed": 15, "success": true, "num_steps": 208, "horizon": 750, "wall_time_s": 26.4, "instruction": "Pick the mango from the counter and place it in the cabinet.", "video": null}
+{"episode": 16, "seed": 16, "success": true, "num_steps": 224, "horizon": 750, "wall_time_s": 18.0, "instruction": "Pick the canned food from the counter and place it in the cabinet.", "video": null}
+{"episode": 17, "seed": 17, "success": true, "num_steps": 352, "horizon": 750, "wall_time_s": 18.8, "instruction": "Pick the bell pepper from the counter and place it in the cabinet.", "video": null}
+{"episode": 18, "seed": 18, "success": true, "num_steps": 224, "horizon": 750, "wall_time_s": 24.0, "instruction": "Pick the mushroom from the counter and place it in the cabinet.", "video": null}
+{"episode": 19, "seed": 19, "success": true, "num_steps": 384, "horizon": 750, "wall_time_s": 26.1, "instruction": "Pick the garlic from the counter and place it in the cabinet.", "video": null}
+{"episode": 20, "seed": 20, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 45.2, "instruction": "Pick the mayonnaise from the counter and place it in the cabinet.", "video": null}
+{"episode": 21, "seed": 21, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 35.3, "instruction": "Pick the mustard from the counter and place it in the cabinet.", "video": null}
+{"episode": 22, "seed": 22, "success": true, "num_steps": 336, "horizon": 750, "wall_time_s": 19.6, "instruction": "Pick the pitcher from the counter and place it in the cabinet.", "video": null}
+{"episode": 23, "seed": 23, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 32.8, "instruction": "Pick the ladle from the counter and place it in the cabinet.", "video": null}
+{"episode": 24, "seed": 24, "success": true, "num_steps": 176, "horizon": 750, "wall_time_s": 18.5, "instruction": "Pick the boxed food from the counter and place it in the cabinet.", "video": null}
+{"episode": 25, "seed": 25, "success": true, "num_steps": 208, "horizon": 750, "wall_time_s": 17.6, "instruction": "Pick the garlic from the counter and place it in the cabinet.", "video": null}
+{"episode": 26, "seed": 26, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 36.9, "instruction": "Pick the bread from the counter and place it in the cabinet.", "video": null}
+{"episode": 27, "seed": 27, "success": true, "num_steps": 256, "horizon": 750, "wall_time_s": 16.9, "instruction": "Pick the reamer from the counter and place it in the cabinet.", "video": null}
+{"episode": 28, "seed": 28, "success": true, "num_steps": 192, "horizon": 750, "wall_time_s": 17.7, "instruction": "Pick the egg from the counter and place it in the cabinet.", "video": null}
+{"episode": 29, "seed": 29, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 40.7, "instruction": "Pick the teapot from the counter and place it in the cabinet.", "video": null}
+{"episode": 30, "seed": 30, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 32.1, "instruction": "Pick the cheese grater from the counter and place it in the cabinet.", "video": null}
+{"episode": 31, "seed": 31, "success": true, "num_steps": 224, "horizon": 750, "wall_time_s": 20.4, "instruction": "Pick the beer from the counter and place it in the cabinet.", "video": null}
+{"episode": 32, "seed": 32, "success": true, "num_steps": 208, "horizon": 750, "wall_time_s": 16.6, "instruction": "Pick the mug from the counter and place it in the cabinet.", "video": null}
+{"episode": 33, "seed": 33, "success": true, "num_steps": 208, "horizon": 750, "wall_time_s": 17.3, "instruction": "Pick the bread from the counter and place it in the cabinet.", "video": null}
+{"episode": 34, "seed": 34, "success": true, "num_steps": 224, "horizon": 750, "wall_time_s": 15.0, "instruction": "Pick the bread from the counter and place it in the cabinet.", "video": null}
+{"episode": 35, "seed": 35, "success": true, "num_steps": 288, "horizon": 750, "wall_time_s": 20.0, "instruction": "Pick the cinnamon from the counter and place it in the cabinet.", "video": null}
+{"episode": 36, "seed": 36, "success": true, "num_steps": 256, "horizon": 750, "wall_time_s": 16.4, "instruction": "Pick the soap dispenser from the counter and place it in the cabinet.", "video": null}
+{"episode": 37, "seed": 37, "success": true, "num_steps": 208, "horizon": 750, "wall_time_s": 14.4, "instruction": "Pick the cheese from the counter and place it in the cabinet.", "video": null}
+{"episode": 38, "seed": 38, "success": true, "num_steps": 160, "horizon": 750, "wall_time_s": 12.8, "instruction": "Pick the bread from the counter and place it in the cabinet.", "video": null}
+{"episode": 39, "seed": 39, "success": true, "num_steps": 240, "horizon": 750, "wall_time_s": 20.5, "instruction": "Pick the paprika from the counter and place it in the cabinet.", "video": null}
+{"episode": 40, "seed": 40, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 38.8, "instruction": "Pick the syrup bottle from the counter and place it in the cabinet.", "video": null}
+{"episode": 41, "seed": 41, "success": true, "num_steps": 224, "horizon": 750, "wall_time_s": 18.9, "instruction": "Pick the mushroom from the counter and place it in the cabinet.", "video": null}
+{"episode": 42, "seed": 42, "success": true, "num_steps": 240, "horizon": 750, "wall_time_s": 17.9, "instruction": "Pick the bread from the counter and place it in the cabinet.", "video": null}
+{"episode": 43, "seed": 43, "success": true, "num_steps": 208, "horizon": 750, "wall_time_s": 16.4, "instruction": "Pick the cake from the counter and place it in the cabinet.", "video": null}
+{"episode": 44, "seed": 44, "success": true, "num_steps": 208, "horizon": 750, "wall_time_s": 15.7, "instruction": "Pick the onion from the counter and place it in the cabinet.", "video": null}
+{"episode": 45, "seed": 45, "success": true, "num_steps": 256, "horizon": 750, "wall_time_s": 19.9, "instruction": "Pick the turmeric from the counter and place it in the cabinet.", "video": null}
+{"episode": 46, "seed": 46, "success": true, "num_steps": 192, "horizon": 750, "wall_time_s": 19.9, "instruction": "Pick the tomato from the counter and place it in the cabinet.", "video": null}
+{"episode": 47, "seed": 47, "success": true, "num_steps": 256, "horizon": 750, "wall_time_s": 15.4, "instruction": "Pick the mayonnaise from the counter and place it in the cabinet.", "video": null}
+{"episode": 48, "seed": 48, "success": true, "num_steps": 208, "horizon": 750, "wall_time_s": 16.4, "instruction": "Pick the garlic from the counter and place it in the cabinet.", "video": null}
+{"episode": 49, "seed": 49, "success": true, "num_steps": 208, "horizon": 750, "wall_time_s": 15.0, "instruction": "Pick the bottled water from the counter and place it in the cabinet.", "video": null}
+{"episode": 50, "seed": 50, "success": true, "num_steps": 208, "horizon": 750, "wall_time_s": 19.5, "instruction": "Pick the measuring cup from the counter and place it in the cabinet.", "video": null}
+{"episode": 51, "seed": 51, "success": true, "num_steps": 224, "horizon": 750, "wall_time_s": 15.8, "instruction": "Pick the rolling pin from the counter and place it in the cabinet.", "video": null}
+{"episode": 52, "seed": 52, "success": true, "num_steps": 256, "horizon": 750, "wall_time_s": 18.6, "instruction": "Pick the pitcher from the counter and place it in the cabinet.", "video": null}
+{"episode": 53, "seed": 53, "success": true, "num_steps": 272, "horizon": 750, "wall_time_s": 30.4, "instruction": "Pick the saucepan lid from the counter and place it in the cabinet.", "video": null}
+{"episode": 54, "seed": 54, "success": true, "num_steps": 176, "horizon": 750, "wall_time_s": 20.4, "instruction": "Pick the tomato from the counter and place it in the cabinet.", "video": null}
+{"episode": 55, "seed": 55, "success": true, "num_steps": 192, "horizon": 750, "wall_time_s": 15.9, "instruction": "Pick the tomato from the counter and place it in the cabinet.", "video": null}
+{"episode": 56, "seed": 56, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 32.5, "instruction": "Pick the wooden spoon from the counter and place it in the cabinet.", "video": null}
+{"episode": 57, "seed": 57, "success": true, "num_steps": 176, "horizon": 750, "wall_time_s": 13.9, "instruction": "Pick the bell pepper from the counter and place it in the cabinet.", "video": null}
+{"episode": 58, "seed": 58, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 44.1, "instruction": "Pick the sugar cube from the counter and place it in the cabinet.", "video": null}
+{"episode": 59, "seed": 59, "success": true, "num_steps": 256, "horizon": 750, "wall_time_s": 15.2, "instruction": "Pick the glass cup from the counter and place it in the cabinet.", "video": null}
+{"episode": 60, "seed": 60, "success": true, "num_steps": 192, "horizon": 750, "wall_time_s": 19.9, "instruction": "Pick the carrot from the counter and place it in the cabinet.", "video": null}
+{"episode": 61, "seed": 61, "success": true, "num_steps": 224, "horizon": 750, "wall_time_s": 20.7, "instruction": "Pick the croissant from the counter and place it in the cabinet.", "video": null}
+{"episode": 62, "seed": 62, "success": true, "num_steps": 240, "horizon": 750, "wall_time_s": 17.1, "instruction": "Pick the potato from the counter and place it in the cabinet.", "video": null}
+{"episode": 63, "seed": 63, "success": true, "num_steps": 544, "horizon": 750, "wall_time_s": 26.5, "instruction": "Pick the glass cup from the counter and place it in the cabinet.", "video": null}
+{"episode": 64, "seed": 64, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 35.7, "instruction": "Pick the oil/vinegar bottle from the counter and place it in the cabinet.", "video": null}
+{"episode": 65, "seed": 65, "success": true, "num_steps": 240, "horizon": 750, "wall_time_s": 20.4, "instruction": "Pick the avocado from the counter and place it in the cabinet.", "video": null}
+{"episode": 66, "seed": 66, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 37.3, "instruction": "Pick the donut from the counter and place it in the cabinet.", "video": null}
+{"episode": 67, "seed": 67, "success": true, "num_steps": 256, "horizon": 750, "wall_time_s": 15.9, "instruction": "Pick the sugar cube from the counter and place it in the cabinet.", "video": null}
+{"episode": 68, "seed": 68, "success": true, "num_steps": 176, "horizon": 750, "wall_time_s": 21.8, "instruction": "Pick the kiwi from the counter and place it in the cabinet.", "video": null}
+{"episode": 69, "seed": 69, "success": true, "num_steps": 272, "horizon": 750, "wall_time_s": 14.0, "instruction": "Pick the tongs from the counter and place it in the cabinet.", "video": null}
+{"episode": 70, "seed": 70, "success": true, "num_steps": 208, "horizon": 750, "wall_time_s": 23.5, "instruction": "Pick the cupcake from the counter and place it in the cabinet.", "video": null}
+{"episode": 71, "seed": 71, "success": true, "num_steps": 224, "horizon": 750, "wall_time_s": 22.5, "instruction": "Pick the bottled water from the counter and place it in the cabinet.", "video": null}
+{"episode": 72, "seed": 72, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 36.9, "instruction": "Pick the boxed food from the counter and place it in the cabinet.", "video": null}
+{"episode": 73, "seed": 73, "success": true, "num_steps": 400, "horizon": 750, "wall_time_s": 23.6, "instruction": "Pick the oil/vinegar bottle from the counter and place it in the cabinet.", "video": null}
+{"episode": 74, "seed": 74, "success": true, "num_steps": 224, "horizon": 750, "wall_time_s": 14.5, "instruction": "Pick the tongs from the counter and place it in the cabinet.", "video": null}
+{"episode": 75, "seed": 75, "success": true, "num_steps": 320, "horizon": 750, "wall_time_s": 23.0, "instruction": "Pick the soap dispenser from the counter and place it in the cabinet.", "video": null}
+{"episode": 76, "seed": 76, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 37.4, "instruction": "Pick the kettle from the counter and place it in the cabinet.", "video": null}
+{"episode": 77, "seed": 77, "success": true, "num_steps": 240, "horizon": 750, "wall_time_s": 15.1, "instruction": "Pick the mayonnaise from the counter and place it in the cabinet.", "video": null}
+{"episode": 78, "seed": 78, "success": true, "num_steps": 192, "horizon": 750, "wall_time_s": 18.4, "instruction": "Pick the sweet potato from the counter and place it in the cabinet.", "video": null}
+{"episode": 79, "seed": 79, "success": true, "num_steps": 208, "horizon": 750, "wall_time_s": 19.0, "instruction": "Pick the cinnamon from the counter and place it in the cabinet.", "video": null}
+{"episode": 80, "seed": 80, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 39.8, "instruction": "Pick the cup from the counter and place it in the cabinet.", "video": null}
+{"episode": 81, "seed": 81, "success": true, "num_steps": 256, "horizon": 750, "wall_time_s": 17.7, "instruction": "Pick the carrot from the counter and place it in the cabinet.", "video": null}
+{"episode": 82, "seed": 82, "success": true, "num_steps": 288, "horizon": 750, "wall_time_s": 19.8, "instruction": "Pick the coffee cup from the counter and place it in the cabinet.", "video": null}
+{"episode": 83, "seed": 83, "success": true, "num_steps": 224, "horizon": 750, "wall_time_s": 23.2, "instruction": "Pick the coffee cup from the counter and place it in the cabinet.", "video": null}
+{"episode": 84, "seed": 84, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 35.7, "instruction": "Pick the kebab skewer from the counter and place it in the cabinet.", "video": null}
+{"episode": 85, "seed": 85, "success": true, "num_steps": 160, "horizon": 750, "wall_time_s": 15.3, "instruction": "Pick the bowl from the counter and place it in the cabinet.", "video": null}
+{"episode": 86, "seed": 86, "success": true, "num_steps": 208, "horizon": 750, "wall_time_s": 22.2, "instruction": "Pick the ice cube from the counter and place it in the cabinet.", "video": null}
+{"episode": 87, "seed": 87, "success": true, "num_steps": 304, "horizon": 750, "wall_time_s": 20.4, "instruction": "Pick the soap dispenser from the counter and place it in the cabinet.", "video": null}
+{"episode": 88, "seed": 88, "success": true, "num_steps": 224, "horizon": 750, "wall_time_s": 18.6, "instruction": "Pick the hotdog bun from the counter and place it in the cabinet.", "video": null}
+{"episode": 89, "seed": 89, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 39.2, "instruction": "Pick the bar from the counter and place it in the cabinet.", "video": null}
+{"episode": 90, "seed": 90, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 37.2, "instruction": "Pick the teapot from the counter and place it in the cabinet.", "video": null}
+{"episode": 91, "seed": 91, "success": true, "num_steps": 256, "horizon": 750, "wall_time_s": 15.9, "instruction": "Pick the ketchup from the counter and place it in the cabinet.", "video": null}
+{"episode": 92, "seed": 92, "success": true, "num_steps": 176, "horizon": 750, "wall_time_s": 15.3, "instruction": "Pick the mango from the counter and place it in the cabinet.", "video": null}
+{"episode": 93, "seed": 93, "success": true, "num_steps": 208, "horizon": 750, "wall_time_s": 17.7, "instruction": "Pick the bar soap from the counter and place it in the cabinet.", "video": null}
+{"episode": 94, "seed": 94, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 37.8, "instruction": "Pick the reamer from the counter and place it in the cabinet.", "video": null}
+{"episode": 95, "seed": 95, "success": true, "num_steps": 384, "horizon": 750, "wall_time_s": 24.6, "instruction": "Pick the bread from the counter and place it in the cabinet.", "video": null}
+{"episode": 96, "seed": 96, "success": false, "num_steps": 750, "horizon": 750, "wall_time_s": 40.5, "instruction": "Pick the cookie dough ball from the counter and place it in the cabinet.", "video": null}
+{"episode": 97, "seed": 97, "success": true, "num_steps": 240, "horizon": 750, "wall_time_s": 12.0, "instruction": "Pick the mug from the counter and place it in the cabinet.", "video": null}
+{"episode": 98, "seed": 98, "success": true, "num_steps": 208, "horizon": 750, "wall_time_s": 18.6, "instruction": "Pick the pear from the counter and place it in the cabinet.", "video": null}
+{"episode": 99, "seed": 99, "success": true, "num_steps": 224, "horizon": 750, "wall_time_s": 17.4, "instruction": "Pick the carrot from the counter and place it in the cabinet.", "video": null}
