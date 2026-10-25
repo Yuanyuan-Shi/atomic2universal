@@ -21,6 +21,10 @@ iteration. `build_config.py --dry-run`: all 5 RLinf divisibility rules OK (376 %
 | 2 `20261016-1232-workstation` | 4 envs x 2 epochs, micro 4 | Iterations 1-2 trained and saved. During save 2 the actor's RSS reached 17.3 GiB and host RAM 61.6 GiB (97.6%). Ray killed 3 `ChannelWorker`s and the `EnvWorker`, and RLinf exited 1. |
 | 3 (this run) | 2 envs x 4 epochs, micro 4 | Completed. Host RAM peak 52.5 GiB (83.7%). |
 
+The run directories of attempts 1 and 2 were removed from the repository on 2026-10-25 (only attempt 3,
+`20261016-1331-workstation`, is kept); their configs and logs remain in git history, e.g.
+`git show 7cadd2f:expert_training/runs/PickPlaceCounterToCabinet/20261016-1232-workstation/train.log`.
+
 Fallback steps: **1 needed** (fewer envs, smaller micro-batch; 8 rollouts/iteration and 47 optimizer steps kept).
 **2 is a no-op**: StructRL already freezes the VLM, LLM, vision tower and `mlp1` (`docs/rl_recon.md`). **3 (LoRA) not needed**,
 and not implemented. These are smoke-test settings only; `hw_aws_node.yaml` (now `hw_node8.yaml`) is unchanged. The failed runs' raw checkpoints
