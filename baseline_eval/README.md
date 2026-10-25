@@ -35,7 +35,9 @@ python -m baseline_eval.run_baseline --pairing pnp_cabinet_drawer --roles i1 --s
 Report (one tab per task set with results; `_smoke` and other `_` folders skipped). Below the baseline,
 a tab gets an "RL Expert closed-loop evaluation" section when `configs/eval/rl_experts.yaml` lists the task
 set: per role, the `--results-root` of an expert evaluation (same seeds as the baseline), or `null` for a
-pending row.
+pending row. Above it, a 100-episode RL expert vs baseline table appears for every role with both
+`eval_n100/{baseline,experts}/<pairing>/<role>/summary.json` (Newcombe CI of the gain). Code: `build_report.py`
+(tabs, page), `report_common.py` (style, rows, video cards), `report_rl.py` (RL expert and 100-episode parts).
 ```bash
 python -m baseline_eval.build_report             # or: --pairings pnp_cabinet_drawer
 python -m http.server 8080 --directory baseline_eval/results

@@ -20,6 +20,7 @@ h1 { font-size:20px; margin:0 0 16px; }
 table { border-collapse:collapse; background:var(--card); }
 th, td { border:1px solid var(--line); padding:6px 10px; text-align:left; }
 h1.section-title { margin:40px 0 16px; padding-top:24px; border-top:2px solid var(--line); }
+.panel > h1.section-title:first-child { margin-top:0; padding-top:0; border-top:none; }
 tr.pending td { color:var(--muted); font-style:italic; }
 section { margin-bottom:32px; }
 section header { display:flex; flex-wrap:wrap; align-items:baseline; gap:12px;
@@ -39,9 +40,18 @@ figcaption { display:flex; justify-content:space-between; gap:8px; padding:6px 8
 .badge.fail { color:var(--bad); }
 </style></head>
 <body>
-<h1>Baseline closed-loop evaluation</h1>
+<h1>Closed-loop evaluation</h1>
 <nav class="tabs"><button class="tab" data-tab="pnp_cabinet_drawer">pnp_cabinet_drawer<small>2 tasks</small></button></nav>
 <div class="panel" id="pnp_cabinet_drawer">
+<h1 class="section-title">100-episode closed-loop evaluation: RL expert vs baseline</h1>
+<p class="meta">seeds 0–99 · 100 episodes per run · split target · no video · eval_n100/</p>
+<table><tr><th>Task</th><th>Baseline (checkpoint-60000)</th><th>RL expert</th><th>Expert − baseline (Newcombe 95% CI)</th></tr>
+<tr><td>PickPlaceCounterToCabinet</td><td>67/100 (67%, [57%, 75%])</td><td>step_95: 78/100 (78%, [69%, 85%])</td><td>+11 pp [-1, +23]</td></tr>
+<tr><td>PickPlaceDrawerToCounter</td><td>59/100 (59%, [49%, 68%])</td><td>step_100: 69/100 (69%, [59%, 77%])</td><td>+10 pp [-3, +23]</td></tr>
+</table>
+<p class="note">Successes with Wilson 95% CIs. The gain CI treats the two runs as independent samples; they share
+seeds, so it is conservative.</p>
+<h1 class="section-title">Baseline closed-loop evaluation</h1>
 <p class="meta">Pairing: pnp_cabinet_drawer · checkpoint: checkpoints/sft_joint/gr00t_n1-5/foundation_model_learning/target_posttraining/atomic_seen/checkpoint-60000</p>
 <table><tr><th>Role</th><th>Task</th><th>Split</th><th>Success</th><th>SR</th><th>95% CI</th>
 <th>Reference</th><th>Reference note</th></tr>

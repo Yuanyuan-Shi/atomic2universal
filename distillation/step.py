@@ -1,10 +1,11 @@
 """One multi-teacher distillation update, in the exact order shared by the toy and the GR00T runs:
-(1) student sample A^S = FlowSolve(v_theta; z) with gradients; (2) K_psi fake-network updates by flow
-matching on the detached A^S; (3) fresh tau and eps, A^tau from the detached A^S, teacher and fake
-velocities as constants, the DMD direction g and the surrogate loss on the graph-carrying A^S;
+(1) student sample A^S = FlowSolve(v_theta; z) with gradients; 
+(2) K_psi fake-network updates by flow matching on the detached A^S; 
+(3) fresh tau and eps, A^tau from the detached A^S, teacher and fake velocities as constants, the DMD direction g and the surrogate loss on the graph-carrying A^S;
 (4) teacher samples A^T = FlowSolve(v_{T_k}; z') without gradients and the student's flow-matching
-loss on them; (5) one student step on alpha_DMD·L_DMD + alpha_FM·L_FM, where a branch whose alpha is
-0 is skipped entirely; (6) IDA of the fake network toward the student. All noise is float32 with the
+loss on them; 
+(5) one student step on alpha_DMD·L_DMD + alpha_FM·L_FM, where a branch whose alpha is 0 is skipped entirely; 
+(6) IDA of the fake network toward the student. All noise is float32 with the
 shape and device of the action mask and is drawn from one explicit torch.Generator."""
 
 from typing import Any
