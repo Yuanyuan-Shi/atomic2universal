@@ -1,16 +1,17 @@
 """GPU integration tests of what the GR00T distillation shares and spends (spec §6, tests 2 and 7). Test 2: the three
 checkpoints share one backbone and one set of normalization statistics (it only hashes tensors, ≈ 30 s on the CPU, so
-it stays out of the fast CPU suite). Test 7: memory and speed of one full `distill_step` at the Level-3 setting, built
-by train.py's `Distiller` from configs/distillation/level3_mtd_pilot.yaml: student and fake network fp32 with AdamW,
-Expert I1 and Expert I2 bf16 teachers routed on both tasks, the shared bf16 backbone (α_DMD = α_FM = 0.5, K_ψ = 5,
-λ_IDA = 0.99), on task-balanced batches of the four round-0 collections, for B = 8, 16, 32. Per B: WARMUP updates, then
-over MEASURED updates the median time of backbone encode + distill_step (`Distiller._update`), of the encode alone, and
-of the CPU transform (prefetched on a thread in training), the peak `torch.cuda.max_memory_allocated` and the peak
-whole-GPU memory used as nvidia-smi reports it (polled every POLL_S); an OOM is recorded as a result. Then what the
-trainer keeps on the GPU after training at that B (`Distiller.train` ends with empty_cache, but fragmented segments stay
-reserved) while rounds.py runs two policy servers and sims for collection and selection. Test 7 passes if some B fits
-with ≥ HEADROOM of the card free in both phases; readings, the allocator setting (PYTORCH_CUDA_ALLOC_CONF) and the
-largest such B are printed (run with -s). Skips without CUDA or without the checkpoints and collections."""
+it stays out of the fast CPU suite). Test 7: memory and speed of one full `distill_step` at the two-teacher MTD
+setting, built by train.py's `Distiller` from configs/distillation/mtd_pnp_cabinet_drawer.yaml: student and fake
+network fp32 with AdamW, Expert I1 and Expert I2 bf16 teachers routed on both tasks, the shared bf16 backbone (α_DMD
+= α_FM = 0.5, K_ψ = 5, λ_IDA = 0.99), on task-balanced batches of the four round-0 collections, for B = 8, 16, 32.
+Per B: WARMUP updates, then over MEASURED updates the median time of backbone encode + distill_step
+(`Distiller._update`), of the encode alone, and of the CPU transform (prefetched on a thread in training), the peak
+`torch.cuda.max_memory_allocated` and the peak whole-GPU memory used as nvidia-smi reports it (polled every POLL_S);
+an OOM is recorded as a result. Then what the trainer keeps on the GPU after training at that B (`Distiller.train`
+ends with empty_cache, but fragmented segments stay reserved) while rounds.py runs two policy servers and sims for
+collection and selection. Test 7 passes if some B fits with ≥ HEADROOM of the card free in both phases; readings, the
+allocator setting (PYTORCH_CUDA_ALLOC_CONF) and the largest such B are printed (run with -s). Skips without CUDA or
+without the checkpoints and collections."""
 
 import gc
 import json
@@ -32,22 +33,22 @@ from distillation.gr00t import features as features_module
 from distillation.gr00t.buffer import ObservationBuffer, collection_dir
 from distillation.gr00t.export import CKPT60K
 from distillation.gr00t.features import METADATA_FILE, verify_shared_backbone
-from distillation.gr00t.train import Distiller, checkpoint_path, load_config
+from distillation.gr00t.rounds import round_jobs
+from distillation.gr00t.train import Distiller, load_config, project_path
 from distillation.gr00t.wrapper import INDEX_FILE
 from distillation.interfaces import DistillConfig
 from distillation.tests.test_gr00t_integration import COLLECTIONS, EXPERT_I1, EXPERT_I2, report
 from evaluation.config import PROJECT_ROOT
 
-CONFIG = load_config(PROJECT_ROOT / "configs/distillation/level3_mtd_pilot.yaml", None)
-DATA_DIRS = ([collection_dir(COLLECTIONS, CONFIG["collection"]["policy"], role, 0) for role in CONFIG["roles"]]
-             + [collection_dir(COLLECTIONS, label, role, 0) for role, label in CONFIG["teachers"].items()])
+CONFIG = load_config(PROJECT_ROOT / "configs/distillation/mtd_pnp_cabinet_drawer.yaml")
+DATA_DIRS = [collection_dir(COLLECTIONS, job.label, job.role, 0) for job in round_jobs(CONFIG, 0)]
+TEACHERS = [project_path(teacher["checkpoint"]) for teacher in CONFIG["teachers"]]
 FLIPPED_TENSOR = "eagle_model.mlp1.0.bias"  # backbone tensor tampered with in test 2's negative control
 BATCH_SIZES, WARMUP, MEASURED, POLL_S = (8, 16, 32), 2, 5, 0.1
 HEADROOM = 0.15
 SERVERS, SERVER_GIB, SIM_GIB = 2, 6.5, 2.0  # rounds.py runs ≤ 2 server + sim pairs (docs/distill_gr00t_notes.md §9)
 GIB = 2 ** 30
-MISSING = [str(p) for p in [*DATA_DIRS, *(checkpoint_path(CONFIG, label) for label in CONFIG["checkpoints"])]
-           if not p.exists()]
+MISSING = [str(p) for p in [*DATA_DIRS, project_path(CONFIG["student"]["checkpoint"]), *TEACHERS] if not p.exists()]
 pytestmark = [pytest.mark.skipif(not torch.cuda.is_available(), reason="GR00T integration tests need CUDA"),
               pytest.mark.skipif(bool(MISSING), reason=f"needs the checkpoints and round-0 collections: {MISSING}")]
 
@@ -159,7 +160,7 @@ def measure(distiller: Distiller, buffer: ObservationBuffer, batch_size: int) ->
 
 @pytest.fixture(scope="module")
 def distiller() -> Distiller:
-    """Student, fake, both expert teachers, router, backbone and optimizers of the Level-3 config."""
+    """Student, fake, both expert teachers, router, backbone and optimizers of the MTD config."""
     return Distiller(CONFIG)
 
 

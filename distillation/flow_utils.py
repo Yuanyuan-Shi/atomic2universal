@@ -1,4 +1,4 @@
-"""Convention adapter and flow utilities shared by the toy and the GR00T distillation runs. All method
+"""Convention adapter and flow utilities shared by the GR00T distillation runs and their tests. All method
 math uses the paper convention (tau = 1 is noise, A^tau = (1 - tau)·A + tau·eps, velocity target
 eps − A); every model exposes GR00T's native convention, verified in the Isaac-GR00T fork at commit
 9d7d7a9, file third_party/Isaac-GR00T/gr00t/model/action_head/flow_matching_action_head.py: training

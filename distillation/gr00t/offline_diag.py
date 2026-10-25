@@ -13,7 +13,7 @@ All are means over observations; `energy_sem` is the standard error of the overa
 
 Usage (a2u-policy, GPU, from the project root):
   python -m distillation.gr00t.offline_diag --collections DIR [DIR ...] --teachers i1=CKPT [i2=CKPT] \
-      --students NAME=SPEC [NAME=SPEC ...]      SPEC = checkpoint folder | student state .pt | perturb:<scale>
+      --students NAME=SPEC [NAME=SPEC ...]      SPEC = checkpoint folder | student state .pt
 Pass the collections in the run's order (rounds.py: student jobs, then teacher jobs) so `holdout` returns the run's set.
 """
 
@@ -29,7 +29,7 @@ from distillation.flow_utils import flow_solve
 from distillation.gr00t.buffer import ObservationBuffer, task_id
 from distillation.gr00t.export import CKPT60K
 from distillation.gr00t.features import REAL_ACTION_DIM, BackboneFeatures
-from distillation.gr00t.wrapper import GR00TVelocity, perturb_
+from distillation.gr00t.wrapper import GR00TVelocity
 from distillation.router import TeacherRouter
 from evaluation.policy import ACTION_LAYOUT
 
@@ -69,12 +69,9 @@ def summarize(pairs: list[tuple[Tensor, Tensor]]) -> dict[str, dict[str, float]]
     return out
 
 
-def load_student(spec: str, perturb_seed: int) -> GR00TVelocity:
-    """A frozen fp32 student from a checkpoint folder, a `Distiller.save` student state, or ckpt-60000 perturbed."""
-    if spec.startswith("perturb:"):
-        student = GR00TVelocity.from_checkpoint(CKPT60K, torch.float32, DEVICE, trainable=True)
-        perturb_(student, float(spec.removeprefix("perturb:")), perturb_seed)
-    elif Path(spec).is_dir():
+def load_student(spec: str) -> GR00TVelocity:
+    """A frozen fp32 student from a checkpoint folder or a `Distiller.save` student state (of a ckpt-60000 student)."""
+    if Path(spec).is_dir():
         student = GR00TVelocity.from_checkpoint(Path(spec), torch.float32, DEVICE, trainable=False)
     else:
         student = GR00TVelocity.from_checkpoint(CKPT60K, torch.float32, DEVICE, trainable=False)
@@ -102,7 +99,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--noise-seed", type=int, default=1234)
     parser.add_argument("--k", type=int, default=8, help="noise draws per observation")
     parser.add_argument("--batch-size", type=int, default=20)
-    parser.add_argument("--perturb-seed", type=int, default=0, help="seed of perturb:<scale> students")
     return parser.parse_args()
 
 
@@ -122,7 +118,7 @@ def main() -> None:
         ids = torch.as_tensor(task_ids[i:i + args.batch_size], device=DEVICE)
         batches.append((cond, z, solve((router, ids), z, cond, REAL_ACTION_DIM)))
     for name, spec in (item.split("=", 1) for item in args.students):
-        student = load_student(spec, args.perturb_seed)
+        student = load_student(spec)
         pairs = [(solve(student, z, cond, REAL_ACTION_DIM), t) for cond, z, t in batches]
         print(json.dumps({"student": name, "spec": spec, **summarize(pairs)}), flush=True)
         del student

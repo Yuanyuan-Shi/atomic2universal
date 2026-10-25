@@ -11,7 +11,6 @@ fp32 master weights. Dropout (p = 0.2) is always off: the module never leaves ev
 `_vl_groups` for when a memoized result is reused."""
 
 import json
-import math
 from collections.abc import Iterator, Mapping
 from pathlib import Path
 
@@ -129,7 +128,7 @@ class GR00TVelocity(nn.Module):
         on a fresh dict holding the group's unpadded features (it writes into the dict it gets, FMH:270). The result
         is reused only while the cond's feature and mask tensors are the same objects (`is`) at the same version,
         no optimizer has stepped, the grad mode is the same, every vlln / vl_self_attention parameter keeps its
-        storage, version and requires_grad (so IDA, perturbation or a state-dict load recompute), and no backward
+        storage, version and requires_grad (so IDA or a state-dict load recompute), and no backward
         pass has gone through it (that frees its graph). Until then calls share one graph, as within a
         `distill_step` (one backward)."""
         features, mask = cond["backbone_features"], cond["backbone_attention_mask"]
@@ -174,17 +173,3 @@ class GR00TVelocity(nn.Module):
         model_output = head.model(hidden_states=sa_embs, encoder_hidden_states=vl_embs, timestep=t_disc)
         return head.action_decoder(model_output, embodiment_id)[:, -head.action_horizon:]
 
-
-@torch.no_grad()
-def perturb_(model: nn.Module, scale: float, seed: int) -> None:
-    """In place, p ← p + scale · std(p) · N(0, I) for every trainable tensor, in parameter order, with the noise
-    drawn in fp32 from a CPU `torch.Generator` seeded with `seed` (deterministic, independent of the device)."""
-    generator = torch.Generator().manual_seed(seed)
-    params = [(name, p) for name, p in model.named_parameters() if p.requires_grad]
-    if not params:
-        raise ValueError("perturb_: the model has no trainable parameters; load it with trainable=True")
-    for name, p in params:
-        std = p.float().std().item()
-        if not math.isfinite(std):
-            raise ValueError(f"perturb_: std of {name} {tuple(p.shape)} is {std}")
-        p.add_(torch.randn(p.shape, generator=generator).to(p.device), alpha=scale * std)

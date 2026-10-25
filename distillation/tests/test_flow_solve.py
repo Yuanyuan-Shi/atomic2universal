@@ -16,11 +16,9 @@ from distillation.tests.helpers import (
     TinyVelocity,
     gaussian_actions,
     make_generator,
-    toy_cond,
+    task_cond,
 )
-from distillation.toy.gmm_teacher import GMMTeacher
-from distillation.toy.metrics import sliced_w2
-from distillation.toy.problem import TASK_IDS, to_real
+from distillation.tests.mixture import TASK_IDS, GMMTeacher, sliced_w2, to_real
 
 NUM_SAMPLES = 2000
 NUM_REPEATS = 3
@@ -30,7 +28,7 @@ FLOOR_MARGIN = 1.25
 
 def mean_sliced_w2_to_exact(teacher: GMMTeacher, task_id: int, num_steps: int | None) -> float:
     """Mean over repeats of sliced W2 between FlowSolve(num_steps) samples (None: exact samples) and exact ones."""
-    cond = toy_cond(torch.full((NUM_SAMPLES,), OBS_VALUE, dtype=F64), task_id)
+    cond = task_cond(torch.full((NUM_SAMPLES,), OBS_VALUE, dtype=F64), task_id)
     distances = []
     for repeat in range(NUM_REPEATS):
         generator = make_generator(1000 * task_id + repeat)
@@ -65,7 +63,7 @@ def test_10_flow_solve_4_steps_runs_documented_schedule() -> None:
     z, c = gaussian_actions(n, generator), gaussian_actions(n, generator)
     z_before = z.clone()
     spy = SpyVelocity(ConstantVelocity(c))
-    out = flow_solve(spy, z, toy_cond(torch.zeros(n, dtype=F64), 1), 4, requires_grad=False)
+    out = flow_solve(spy, z, task_cond(torch.zeros(n, dtype=F64), 1), 4, requires_grad=False)
     assert len(spy.calls) == 4
     for k, call in enumerate(spy.calls):
         assert call["t"].shape == (n,) and call["t"].dtype == F64
@@ -79,7 +77,7 @@ def test_10_flow_solve_output_dtype_follows_z() -> None:
     """Test 10: velocities are cast to z's dtype (float64 model, float32 z → float32 output, no promotion)."""
     generator, n = make_generator(11), 4
     z, c = gaussian_actions(n, generator, dtype=torch.float32), gaussian_actions(n, generator)
-    out = flow_solve(ConstantVelocity(c), z, toy_cond(torch.zeros(n, dtype=F64), 1), 4, requires_grad=False)
+    out = flow_solve(ConstantVelocity(c), z, task_cond(torch.zeros(n, dtype=F64), 1), 4, requires_grad=False)
     assert out.dtype == torch.float32
     torch.testing.assert_close(out, z + c.float(), rtol=1e-6, atol=1e-6)
 
@@ -88,7 +86,7 @@ def test_10_flow_solve_output_dtype_follows_z() -> None:
 def test_10_flow_solve_gradient_mode(requires_grad: bool) -> None:
     """Test 10: requires_grad=True keeps the graph to the model's parameters; False returns a graph-free tensor."""
     generator, n, model = make_generator(12), 4, TinyVelocity(seed=12)
-    out = flow_solve(model, gaussian_actions(n, generator), toy_cond(torch.zeros(n, dtype=F64), 1), 4,
+    out = flow_solve(model, gaussian_actions(n, generator), task_cond(torch.zeros(n, dtype=F64), 1), 4,
                      requires_grad=requires_grad)
     assert out.requires_grad is requires_grad
     if requires_grad:

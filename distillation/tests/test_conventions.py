@@ -18,10 +18,9 @@ from distillation.tests.helpers import (
     noisy_points,
     random_obs,
     score_from_velocity,
-    toy_cond,
+    task_cond,
 )
-from distillation.toy.gmm_teacher import GMMTeacher
-from distillation.toy.problem import TASK_IDS, action_mask
+from distillation.tests.mixture import TASK_IDS, GMMTeacher, action_mask
 
 TAU_LOW, TAU_HIGH = 0.05, 0.95
 NUM_POINTS = 256
@@ -30,7 +29,7 @@ NUM_POINTS = 256
 def adapter_score_error(teacher: GMMTeacher, task_id: int, seed: int) -> float:
     """Max abs error over masked-in entries of Eq. (9) on the adapter velocity vs. the exact score."""
     generator = make_generator(seed)
-    cond = toy_cond(random_obs(NUM_POINTS, generator), task_id)
+    cond = task_cond(random_obs(NUM_POINTS, generator), task_id)
     tau = TAU_LOW + (TAU_HIGH - TAU_LOW) * torch.rand(NUM_POINTS, generator=generator, dtype=F64)
     x = noisy_points(teacher, cond, tau, generator)
     s_adapter = score_from_velocity(flow_utils.velocity_paper(teacher, x, tau, cond), x, tau)
@@ -101,7 +100,7 @@ def test_01_noisy_action_is_paper_convention() -> None:
 def test_01_flow_matching_loss_uses_paper_convention(teachers: dict[int, GMMTeacher], task_id: int) -> None:
     """Test 1 support: L_FM of the exact teacher matches a Monte Carlo E‖v_paper − (ε − A)‖² to 5%."""
     teacher, n, generator = teachers[task_id], 20000, make_generator(30 + task_id)
-    cond, mask = toy_cond(random_obs(n, generator), task_id), action_mask(n)
+    cond, mask = task_cond(random_obs(n, generator), task_id), action_mask(n)
     a = teacher.sample_exact(cond, n, generator).to(F64)
     tau, eps = torch.rand(n, generator=generator, dtype=F64), gaussian_actions(n, generator)
     v = flow_utils.velocity_paper(teacher, flow_utils.noisy_action(a, eps, tau), tau, cond)

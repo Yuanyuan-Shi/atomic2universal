@@ -5,8 +5,9 @@ copied from the base, the action head cast from the student); `expert_training/v
 folder (bf16 only, no value head, the eval's `Gr00tPolicy` loads it without weight mismatches and returns a valid
 chunk). Only after that is `export_info.json` written and `<out>.partial` renamed to `<out>`, so `<out>` exists only
 as a complete, verified export, and it is never overwritten.
-CLI (a2u-policy, GPU, from the project root), e.g. Level 1's perturbed copy of checkpoint-60000:
-    python -m distillation.gr00t.export --source <ckpt> --out <dir> [--perturb-scale s --perturb-seed n]"""
+CLI (a2u-policy, GPU, from the project root): an exact copy of a checkpoint through this path, as used for the
+closed-loop part of the export round-trip test (RESULTS.md, test 6):
+    python -m distillation.gr00t.export --source <ckpt> --out <dir>"""
 
 import argparse
 import json
@@ -20,7 +21,7 @@ import torch
 from safetensors.torch import save_file
 from torch import Tensor
 
-from distillation.gr00t.wrapper import INDEX_FILE, GR00TVelocity, checkpoint_tensors, perturb_
+from distillation.gr00t.wrapper import INDEX_FILE, GR00TVelocity, checkpoint_tensors
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CKPT60K = (PROJECT_ROOT / "checkpoints/sft_joint/gr00t_n1-5/foundation_model_learning/target_posttraining/"
@@ -77,22 +78,14 @@ def export_student(student: GR00TVelocity, out_dir: Path, info: dict, base_check
 
 
 def main() -> None:
-    """CLI: export a copy of `--source` (its own backbone and configs), optionally perturbed with `perturb_`."""
+    """CLI: export a copy of `--source` with its own backbone and configs."""
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--source", type=Path, required=True, help="checkpoint folder to copy")
     parser.add_argument("--out", type=Path, required=True, help="export folder (must not exist)")
-    parser.add_argument("--perturb-scale", type=float, default=0.0, help="p += scale·std(p)·N(0, 1); 0 = exact copy")
-    parser.add_argument("--perturb-seed", type=int, default=0, help="seed of the perturbation noise")
     parser.add_argument("--device", default="cuda", help="device that holds the fp32 action head")
     args = parser.parse_args()
-    if args.perturb_scale < 0:
-        parser.error(f"--perturb-scale must be >= 0, got {args.perturb_scale}")
-    student = GR00TVelocity.from_checkpoint(args.source, torch.float32, args.device, trainable=True)
-    perturbation = None
-    if args.perturb_scale > 0:
-        perturb_(student, args.perturb_scale, args.perturb_seed)
-        perturbation = {"scale": args.perturb_scale, "seed": args.perturb_seed}
-    info = {"source": str(args.source.resolve()), "perturbation": perturbation}
+    student = GR00TVelocity.from_checkpoint(args.source, torch.float32, args.device, trainable=False)
+    info = {"source": str(args.source.resolve())}
     print(f"Exported {export_student(student, args.out, info, base_checkpoint=args.source)}")
 
 

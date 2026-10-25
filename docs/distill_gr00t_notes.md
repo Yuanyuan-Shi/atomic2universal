@@ -50,7 +50,7 @@ Facts were checked with CPU-only scripts: safetensors headers, per-tensor sha256
 | ckpt-60000 | BF16 | **F32** (4.08 GiB) | 2, 7.59 GB |
 | Expert I1 `step_95` / Expert I2 `step_100` | BF16 | BF16 | 2, 5.45 GB each |
 - **Backbone: all 585 tensors are bitwise identical in the three checkpoints** (sha256 of the raw bytes; the dtypes already match, so no cast is involved). Hashing all three took 13 s (page-cached), which is cheap enough to repeat at load in `features.py`.
-- The eval casts everything to bf16: `from_pretrained(..., torch_dtype=bfloat16)` (POL:32, 240) plus bf16 autocast (POL:190). So the Level-1 teacher is bf16(ckpt-60000); the student's fp32 master weights can start from the stored fp32 values.
+- The eval casts everything to bf16: `from_pretrained(..., torch_dtype=bfloat16)` (POL:32, 240) plus bf16 autocast (POL:190). So a checkpoint-60000 teacher is bf16(ckpt-60000); the student's fp32 master weights can start from the stored fp32 values.
 
 ## 6. Saving a student that `run_baseline --checkpoint` loads (same as `expert_training/export_expert.py:80-110`)
 1. Copy `config.json`, `model.safetensors.index.json` and `experiment_cfg/` from ckpt-60000 (identical in all three).

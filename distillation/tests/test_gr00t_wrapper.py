@@ -3,8 +3,8 @@ classes, small sizes): batched, length-grouped `flow_solve` equals the fork's `g
 noise (and treating left padding as valid tokens does not, so grouping matters); continuous t reaches the DiT as
 fp32-discretized buckets; the `process_backbone_output` memo gives the same outputs and gradients as recomputing
 (and is actually used) and is recomputed after a backward through it, an optimizer step, a parameter edit, a
-grad-mode switch or a new or modified cond; the module cannot leave eval mode; `perturb_` is deterministic per seed
-and touches only trainable tensors. The GPU integration tests on the real checkpoints are separate (Phase C)."""
+grad-mode switch or a new or modified cond; the module cannot leave eval mode. The GPU integration tests on the
+real checkpoints are separate (Phase C)."""
 
 import contextlib
 import copy
@@ -17,7 +17,7 @@ from torch import Tensor
 from transformers.feature_extraction_utils import BatchFeature
 
 from distillation.flow_utils import flow_solve
-from distillation.gr00t.wrapper import GR00TVelocity, perturb_
+from distillation.gr00t.wrapper import GR00TVelocity
 
 BLOCK = dict(attention_head_dim=4, num_attention_heads=4, num_layers=2, dropout=0.2, final_dropout=True,
              positional_embeddings=None)
@@ -184,22 +184,3 @@ def test_eval_mode_is_enforced() -> None:
     with pytest.raises(RuntimeError, match="eval mode"):
         model.velocity(x, t, cond)
 
-
-def test_perturb_is_deterministic_and_skips_frozen_tensors() -> None:
-    """Same seed → identical weights, other seed → different; noise std ≈ scale·std(p); frozen tensors unchanged;
-    a model without trainable tensors raises."""
-    base, same_a, same_b, other = (tiny_model() for _ in range(4))
-    for model in (same_a, same_b, other):
-        model.action_head.vlln.requires_grad_(False)
-    perturb_(same_a, 0.1, seed=3)
-    perturb_(same_b, 0.1, seed=3)
-    perturb_(other, 0.1, seed=4)
-    for (name, p0), p_a, p_b, p_o in zip(base.named_parameters(), same_a.parameters(), same_b.parameters(),
-                                         other.parameters()):
-        assert torch.equal(p_a, p_b), name
-        assert torch.equal(p_a, p0) == name.startswith("action_head.vlln."), name
-        assert not torch.equal(p_a, p_o) or name.startswith("action_head.vlln."), name
-    w0, w = base.action_head.action_encoder.W2.W, same_a.action_head.action_encoder.W2.W
-    assert abs((w - w0).std().item() / (0.1 * w0.std().item()) - 1) < 0.05
-    with pytest.raises(ValueError, match="no trainable"):
-        perturb_(tiny_model().requires_grad_(False), 0.1, seed=0)

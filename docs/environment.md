@@ -385,18 +385,16 @@ torch build) cannot target sm_103, and flash-attn's build has no PTX option, so 
   noise on every query, so the runs are treated as independent; with positively correlated outcomes the intervals
   are conservative.
 
-## Stage 3a: distillation toy (2026-10-22)
+## Stage 3a: shared distillation code (2026-10-22)
 
-- Runs in the existing RL env `third_party/conda_envs/a2u-rl-blackwell` (torch 2.7.1+cu128), CPU only
-  (`CUDA_VISIBLE_DEVICES=""`), because the GPU was busy with the Stage 2b evaluation.
-- `matplotlib` 3.10.0 and `pytest` 9.0.3 were already installed. Added with pip: `jupyter` 1.1.1 and
-  `nbformat` 5.11.1, which pulled in 67 new dependencies (nbconvert 7.17.2, nbclient 0.11.0, ipykernel 7.4.0,
-  ipython 9.17.1, jupyterlab 4.6.4, notebook 7.6.3, tornado 6.6, traitlets 5.16.1, ...). A `pip install --dry-run`
-  and a `pip freeze` diff before and after confirmed that no installed package changed version, so the separate
-  `a2u-distill-toy` env was not needed.
-- Deviations from the Stage 3a spec are listed in `distillation/toy/RESULTS.md`: pretraining base retuned (shift 0.25,
-  σ × 1.4) to reach ~55% initial success, mode coverage measured in step-1 coordinates, and the pass criterion read
-  three ways because the literal 80% W2 bar sits at the n = 2,000 noise floor.
+- Ran in the existing RL env `third_party/conda_envs/a2u-rl-blackwell` (torch 2.7.1+cu128), CPU only
+  (`CUDA_VISIBLE_DEVICES=""`), because the GPU was busy with the Stage 2b evaluation. Since the cleanup of 2026-10-25
+  the whole distillation test suite runs in `a2u-policy` (Stage 3b below).
+- `matplotlib` 3.10.0 and `pytest` 9.0.3 were already installed. Added with pip for the stage's notebook (removed in the
+  cleanup; git tag `pre-cleanup`): `jupyter` 1.1.1 and `nbformat` 5.11.1, which pulled in 67 new dependencies
+  (nbconvert 7.17.2, nbclient 0.11.0, ipykernel 7.4.0, ipython 9.17.1, jupyterlab 4.6.4, notebook 7.6.3, tornado 6.6,
+  traitlets 5.16.1, ...). A `pip install --dry-run` and a `pip freeze` diff before and after confirmed that no
+  installed package changed version, so no separate env was needed.
 
 ## Stage 3b: distillation on GR00T (2026-10-24)
 

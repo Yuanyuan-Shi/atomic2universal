@@ -24,10 +24,9 @@ from distillation.tests.helpers import (
     make_generator,
     single_gaussian,
     sorted_by_first_entry,
-    toy_cond,
+    task_cond,
 )
-from distillation.toy.gmm_teacher import make_teachers
-from distillation.toy.problem import D, H, action_mask, from_real, sample_batch, to_real
+from distillation.tests.mixture import D, H, action_mask, from_real, make_teachers, sample_batch, to_real
 
 MU_TEACHER = torch.tensor([0.0, 0.0, 0.3, 0.15])
 STUDENT_SHIFT = torch.tensor([0.6, -0.4, 0.6, -0.4])
@@ -40,7 +39,7 @@ def test_11_dmd_step_moves_student_mean_toward_teacher() -> None:
     mu_student = from_real((MU_TEACHER + STUDENT_SHIFT)[None])[0]
     student, fake = ShiftVelocity(mu_student), GaussianFake(mu_student)
     router = TeacherRouter({1: single_gaussian(MU_TEACHER, 1.0)})
-    batch = {"cond": toy_cond(torch.zeros(BATCH_SIZE), 1), "task_ids": torch.ones(BATCH_SIZE, dtype=torch.long),
+    batch = {"cond": task_cond(torch.zeros(BATCH_SIZE), 1), "task_ids": torch.ones(BATCH_SIZE, dtype=torch.long),
              "action_mask": action_mask(BATCH_SIZE)}
     cfg = DistillConfig(alpha_dmd=1.0, alpha_fm=0.0, k_fake=1, lambda_ida=1.0)
     opt_student = torch.optim.SGD(student.parameters(), lr=0.5)

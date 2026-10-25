@@ -3,7 +3,7 @@ observations that checkpoint-60000 recorded in its round-0 collections (10 per t
 without CUDA or without the git-ignored checkpoints and collections; heavy objects load once per module. Measured
 values are printed with a `[phase C]` prefix (run with -s); distillation/gr00t/RESULTS.md records them. What the CPU
 tests on a tiny head (test_gr00t_wrapper.py) cover is not repeated: grouping by valid length, fp32 time buckets, the
-memo, eval mode, perturb_. Tests 2 (shared backbone) and 7 (memory and speed) are in test_gr00t_resources.py; the
+memo, eval mode. Tests 2 (shared backbone) and 7 (memory and speed) are in test_gr00t_resources.py; the
 closed-loop part of test 6 (run_baseline on an export) is script-driven, see RESULTS.md."""
 
 import copy

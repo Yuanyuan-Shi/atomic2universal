@@ -11,5 +11,4 @@ checkpoints/experts/
 baseline_eval/results/_rl_experts/
 eval_n100/logs/
 eval_n100/**/policy_server_port*.log
-distillation/toy/runs/
 distillation/runs/

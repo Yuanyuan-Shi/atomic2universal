@@ -18,16 +18,14 @@ from distillation.interfaces import DistillConfig
 from distillation.router import TeacherRouter
 from distillation.step import distill_step
 from distillation.tests.helpers import SpyVelocity, make_generator, reinit_
-from distillation.toy.gmm_teacher import make_teachers
-from distillation.toy.mlp_student import MLPVelocity
-from distillation.toy.problem import sample_batch
+from distillation.tests.mixture import MLPVelocity, make_teachers, sample_batch
 
 DMD_KEYS = {"loss_dmd", "loss_fake", "vdiff_norm"}
 BATCH_SIZE = 16
 
 
 def make_rig(alpha_dmd: float, k_fake: int = 1, lambda_ida: float = 0.5) -> SimpleNamespace:
-    """Spied student / fake MLPs (different seeds), spied exact teachers, a toy batch, config and optimizers."""
+    """Spied student / fake MLPs (different seeds), spied exact teachers, a mixed-task batch, config and optimizers."""
     student = SpyVelocity(reinit_(MLPVelocity(), seed=110), "student")
     fake = SpyVelocity(reinit_(MLPVelocity(), seed=111), "fake")
     teachers = {k: SpyVelocity(teacher, f"teacher{k}") for k, teacher in make_teachers().items()}

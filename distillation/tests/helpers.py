@@ -1,11 +1,11 @@
-"""Test doubles and small helpers shared by the Stage 3a distillation tests. `TinyVelocity` is a small
-native-convention MLP whose parameters come from an explicit generator, so gradient tests run on a real
-network in float64 without the global RNG; `SpyVelocity` wraps any VelocityModel and records every call with
-its output (or fails the test when it is called), which the routing, FlowSolve and `distill_step` tests use to
-prove what ran and on which inputs; `ConstantVelocity` returns a fixed velocity; `ShiftVelocity` is a student
-whose FlowSolve samples are N(mean, I) with a trainable mean, and `GaussianFake` is the exact fake network of
-that distribution. The remaining functions build seeded toy inputs in the GR00T layout [B, H, D] and the
-test-side oracles (Eq. (9), masking by selection, errors, order-agnostic row comparison)."""
+"""Test doubles and small helpers shared by the distillation tests. `TinyVelocity` is a small native-convention
+MLP whose parameters come from an explicit generator, so gradient tests run on a real network in float64 without the
+global RNG; `SpyVelocity` wraps any VelocityModel and records every call with its output (or fails the test when it is
+called), which the routing, FlowSolve and `distill_step` tests use to prove what ran and on which inputs;
+`ConstantVelocity` returns a fixed velocity; `ShiftVelocity` is a student whose FlowSolve samples are N(mean, I) with a
+trainable mean, and `GaussianFake` is the exact fake network of that distribution. The remaining functions build seeded
+inputs of the Gaussian-mixture problem (mixture.py) in the GR00T layout [B, H, D] and the test-side oracles (Eq. (9),
+masking by selection, errors, order-agnostic row comparison)."""
 
 import math
 from collections.abc import Mapping
@@ -15,8 +15,7 @@ import torch
 from torch import Tensor, nn
 
 from distillation.flow_utils import noisy_action
-from distillation.toy.gmm_teacher import GMMTeacher
-from distillation.toy.problem import D, H, make_cond, to_real
+from distillation.tests.mixture import D, H, GMMTeacher, make_cond, to_real
 
 F64 = torch.float64
 
@@ -47,8 +46,8 @@ def random_obs(n: int, generator: torch.Generator, dtype: torch.dtype = F64) -> 
     return 2 * torch.rand(n, generator=generator, dtype=dtype) - 1
 
 
-def toy_cond(obs: Tensor, task_id: int) -> dict[str, Tensor]:
-    """Toy cond for a batch that is entirely task `task_id`."""
+def task_cond(obs: Tensor, task_id: int) -> dict[str, Tensor]:
+    """Cond of a batch that is entirely task `task_id`."""
     return make_cond(obs, torch.full(obs.shape, task_id, dtype=torch.long))
 
 

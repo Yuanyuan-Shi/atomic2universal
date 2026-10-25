@@ -1,1 +1,1 @@
-"""Pytest validation suite for the Stage 3a distillation code (Section 5 of the spec)."""
+"""Pytest suite of the distillation code: shared modules on the CPU, GR00T integration on the GPU."""

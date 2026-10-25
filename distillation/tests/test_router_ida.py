@@ -21,9 +21,9 @@ from distillation.tests.helpers import (
     gaussian_actions,
     make_generator,
     sorted_by_first_entry,
-    toy_cond,
+    task_cond,
 )
-from distillation.toy.problem import make_cond
+from distillation.tests.mixture import make_cond
 
 TASK_PATTERN = (1, 2, 2, 1, 2, 1, 1, 2, 2, 2, 1, 2)
 Inputs = tuple[Tensor, Tensor, Tensor, Tensor]
@@ -53,7 +53,7 @@ def per_sample_reference(teachers: Teachers, method: str, inputs: Inputs) -> Ten
     a_tau, tau, obs, task_ids = inputs
     rows = []
     for b, k in enumerate(task_ids.tolist()):
-        cond_b = toy_cond(obs[b:b + 1], k)
+        cond_b = task_cond(obs[b:b + 1], k)
         if method == "velocity":
             rows.append(velocity_paper(teachers[k], a_tau[b:b + 1], tau[b:b + 1], cond_b))
         else:

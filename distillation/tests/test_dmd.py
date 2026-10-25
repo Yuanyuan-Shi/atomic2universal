@@ -27,10 +27,9 @@ from distillation.tests.helpers import (
     random_obs,
     rel_err,
     single_gaussian,
-    toy_cond,
+    task_cond,
 )
-from distillation.toy.gmm_teacher import GMMTeacher, make_teachers
-from distillation.toy.problem import OBS_SHIFT, SIGMA, action_mask, mode_means, to_real
+from distillation.tests.mixture import OBS_SHIFT, SIGMA, GMMTeacher, action_mask, make_teachers, mode_means, to_real
 
 NORM_EPS = 1e-8
 
@@ -49,7 +48,7 @@ def test_02_velocity_form_equals_score_form(tau_values: tuple[float, ...], norm_
     fake, teacher = fake_and_teacher_gmms()
     generator, n = make_generator(2), 30
     tau = torch.tensor(tau_values, dtype=F64).repeat(n // len(tau_values))
-    cond, mask = toy_cond(random_obs(n, generator), 2), action_mask(n)
+    cond, mask = task_cond(random_obs(n, generator), 2), action_mask(n)
     x = noisy_points(fake, cond, tau, generator)
     g = dmd_direction(velocity_paper(fake, x, tau, cond), velocity_paper(teacher, x, tau, cond), tau, mask, norm_eps)
     s_diff = masked(fake.exact_score(x, tau, cond) - teacher.exact_score(x, tau, cond), mask)
@@ -61,9 +60,9 @@ def test_02_velocity_form_equals_score_form(tau_values: tuple[float, ...], norm_
 
 
 def student_sample(model: nn.Module, n: int, seed: int) -> tuple[Tensor, Tensor, Tensor]:
-    """(A^S = FlowSolve(model) with gradients, an arbitrary g with garbage in padding, the toy mask)."""
+    """(A^S = FlowSolve(model) with gradients, an arbitrary g with garbage in padding, the problem's mask)."""
     generator = make_generator(seed)
-    cond = toy_cond(random_obs(n, generator), 1)
+    cond = task_cond(random_obs(n, generator), 1)
     a_student = flow_solve(model, gaussian_actions(n, generator), cond, 4, requires_grad=True)
     return a_student, gaussian_actions(n, generator), action_mask(n)
 
@@ -109,7 +108,7 @@ def dmd_step_on_shifted_gaussian(swap: bool, lr: float = 0.05, n: int = 2048) ->
     """(A, A after one SGD step on L_DMD, mask) for student samples of N(μ_T + shift, σ²) and an exact fake."""
     teacher, fake = single_gaussian(MU_TEACHER, SIGMA), single_gaussian(MU_TEACHER + STUDENT_SHIFT, SIGMA)
     generator = make_generator(4)
-    cond, mask = toy_cond(torch.zeros(n, dtype=F64), 1), action_mask(n)
+    cond, mask = task_cond(torch.zeros(n, dtype=F64), 1), action_mask(n)
     a = fake.sample_exact(cond, n, generator).to(F64)
     tau = torch.rand(n, generator=generator, dtype=F64)
     a_tau = noisy_action(a, gaussian_actions(n, generator), tau)
@@ -145,7 +144,7 @@ def test_05_identical_networks_give_zero_direction_and_gradient() -> None:
     student = TinyVelocity(seed=5)
     fake, teacher = copy.deepcopy(student), copy.deepcopy(student)
     generator, n = make_generator(5), 6
-    cond, mask = toy_cond(random_obs(n, generator), 1), action_mask(n)
+    cond, mask = task_cond(random_obs(n, generator), 1), action_mask(n)
     a_student = flow_solve(student, gaussian_actions(n, generator), cond, 4, requires_grad=True)
     tau = torch.rand(n, generator=generator, dtype=F64)
     a_tau = noisy_action(a_student.detach(), gaussian_actions(n, generator), tau)
@@ -166,7 +165,7 @@ def test_05_identity_through_distill_step_gives_zero_loss_and_gradient() -> None
     fake, teacher = copy.deepcopy(student), copy.deepcopy(student)
     n = 8
     obs = random_obs(n, make_generator(6), dtype=torch.float32)
-    batch = {"cond": toy_cond(obs, 1), "task_ids": torch.ones(n, dtype=torch.long), "action_mask": action_mask(n)}
+    batch = {"cond": task_cond(obs, 1), "task_ids": torch.ones(n, dtype=torch.long), "action_mask": action_mask(n)}
     cfg = DistillConfig(alpha_dmd=1.0, alpha_fm=0.0, k_fake=1, lambda_ida=0.5)
     opt_student = torch.optim.SGD(student.parameters(), lr=0.1)
     opt_fake = torch.optim.SGD(fake.parameters(), lr=0.0)

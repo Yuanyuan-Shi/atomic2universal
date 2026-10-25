@@ -1,8 +1,9 @@
 """CPU tests of the Stage 3b data side: the observation buffer (write/read round trip through memory maps, plan and
 record checks, task-balanced sampling statistics, holdout exclusion), the collection seed formula and job plans,
-collect.py's RAM rule and subprocess runner, the config helpers and the round / early-stop / resume logic of rounds.py
-with fake models, collections and selection evals, and that `evaluation/rollout.py` behaves exactly as before when no
-`on_query` callback is given (the env, policy and robocasa helpers are fakes, so no simulator is needed)."""
+collect.py's RAM rule and subprocess runner, the config helpers and checks and the round / early-stop / resume logic
+of rounds.py (three teachers) with fake models, collections and selection evals, and that `evaluation/rollout.py`
+behaves exactly as before when no `on_query` callback is given (the env, policy and robocasa helpers are fakes, so no
+simulator is needed)."""
 
 import importlib
 import json
@@ -19,9 +20,9 @@ from distillation.gr00t.buffer import (
     task_id, write_episode,
 )
 from distillation.gr00t.collect import Job, parallel_slots, plan_job, pending_episodes, run_parallel
-from distillation.gr00t.train import load_config, stalled, unset_keys
+from distillation.gr00t.train import load_config, teacher_roles, unset_keys
 
-CONFIGS = Path(__file__).resolve().parents[2] / "configs" / "distillation"
+CONFIG = Path(__file__).resolve().parents[2] / "configs" / "distillation" / "mtd_pnp_cabinet_drawer.yaml"
 STATE_DIMS = (3, 4, 2, 3, 4)
 
 
@@ -138,24 +139,31 @@ def test_holdout_is_balanced_deterministic_and_never_sampled(tmp_path: Path) -> 
 
 
 def test_collection_seeds_and_round_jobs() -> None:
-    """Seeds are 200000 + round·1000 + episode only; teacher episodes continue after the student's (other scenes)."""
+    """Seeds are 200000 + round·1000 + episode only; teacher episodes continue after the student's (other scenes);
+    round 0 collects the initial student on every teacher's role and each teacher on its own, for any K."""
     assert [collection_seed(0, 0), collection_seed(0, 39), collection_seed(2, 19)] == [200000, 200039, 202019]
     for bad in [(0, 1000), (0, -1), (-1, 0)]:
         with pytest.raises(ValueError):
             collection_seed(*bad)
-    cfg = load_config(CONFIGS / "level3_mtd_pilot.yaml", None)
+    cfg = load_config(CONFIG)
     jobs = {(job.label, job.role): job for job in rounds.round_jobs(cfg, 0)}
     assert jobs.keys() == {("ckpt60k", "i1"), ("ckpt60k", "i2"), ("expert_i1", "i1"), ("expert_i2", "i2")}
     student, teacher = jobs["ckpt60k", "i1"], jobs["expert_i1", "i1"]
     seeds = [collection_seed(0, e) for job in (student, teacher)
              for e in range(job.first_episode, job.first_episode + job.num_episodes)]
-    assert seeds == list(range(200000, 200040))
+    assert seeds == list(range(200000, 200040)) and student.checkpoint == cfg["student"]["checkpoint"]
     later = rounds.round_jobs(cfg, 1)
     assert [(job.label, job.role, job.first_episode) for job in later] == \
-        [("level3_mtd_pilot_round_0", role, 0) for role in ("i1", "i2")]
-    assert later[0].checkpoint.endswith("checkpoints/students/level3_mtd_pilot/round_0")
-    assert rounds.round_jobs(load_config(CONFIGS / "level1_recovery.yaml", None), 0) == \
-        [Job("ckpt60k", role, 0, 20, cfg["checkpoints"]["ckpt60k"]) for role in ("i1", "i2")]
+        [(f"{cfg['run_id']}_round_0", role, 0) for role in ("i1", "i2")]
+    assert later[0].checkpoint.endswith(f"checkpoints/students/{cfg['run_id']}/round_0")
+    third = {"task": "T3", "role": "i3", "label": "expert_i3", "checkpoint": "c3"}
+    three = cfg | {"teachers": [*cfg["teachers"], third]}
+    assert [(job.label, job.role) for job in rounds.round_jobs(three, 0)] == \
+        [("ckpt60k", "i1"), ("ckpt60k", "i2"), ("ckpt60k", "i3"), ("expert_i1", "i1"), ("expert_i2", "i2"),
+         ("expert_i3", "i3")]
+    no_teacher_data = cfg | {"collection": cfg["collection"] | {"teacher_episodes": 0}}
+    assert rounds.round_jobs(no_teacher_data, 0) == \
+        [Job("ckpt60k", role, 0, 20, cfg["student"]["checkpoint"]) for role in ("i1", "i2")]
 
 
 def test_collect_plans_resume_and_ram_rule(tmp_path: Path) -> None:
@@ -185,24 +193,26 @@ def test_run_parallel_logs_and_fails_loudly(tmp_path: Path) -> None:
 
 
 def test_config_helpers() -> None:
-    """Variants merge into the base and rename the run; null placeholders are reported; stalled() per its rule."""
-    cfg = load_config(CONFIGS / "level2_single.yaml", "fm_only")
-    assert cfg["run_id"] == "level2_single_fm_only" and cfg["distill"]["alpha_dmd"] == 0.0
-    assert cfg["distill"]["k_fake"] == 5 and cfg["roles"] == ["i1"]
-    assert unset_keys(cfg) == []
-    pending = cfg | {"train": cfg["train"] | {"batch_size": None, "steps_per_round": None}}
-    assert unset_keys(pending) == ["train.batch_size", "train.steps_per_round"]
-    with pytest.raises(ValueError, match="variant"):
-        load_config(CONFIGS / "level2_single.yaml", None)
+    """Null placeholders are reported, also inside the teacher list; check_config rejects them, selection seeds outside
+    1000–1019, teachers whose task is not their role's in the task set, and repeated roles; stalled() per its rule."""
+    cfg = load_config(CONFIG)
+    assert teacher_roles(cfg) == ["i1", "i2"] and unset_keys(cfg) == []
+    rounds.check_config(cfg)
+    pending = cfg | {"teachers": [cfg["teachers"][0] | {"checkpoint": None}, cfg["teachers"][1]],
+                     "train": cfg["train"] | {"batch_size": None}}
+    assert unset_keys(pending) == ["teachers.0.checkpoint", "train.batch_size"]
     with pytest.raises(ValueError, match="unset"):
         rounds.check_config(pending)
-    ready = cfg | {"train": cfg["train"] | {"batch_size": 8, "steps_per_round": 10}}
-    rounds.check_config(ready)
     with pytest.raises(ValueError, match="seeds"):
-        rounds.check_config(ready | {"selection": ready["selection"] | {"seed_start": 1001}})
-    history = [{"a": 0.5, "b": 0.5}, {"a": 0.6, "b": 0.4}, {"a": 0.6, "b": 0.5}]
-    assert not stalled(history, 2) and stalled(history + [{"a": 0.55, "b": 0.5}], 2)
-    assert not stalled(history + [{"a": 0.55, "b": 0.55}], 2) and not stalled(history * 3, 0)
+        rounds.check_config(cfg | {"selection": cfg["selection"] | {"seed_start": 1001}})
+    swapped = [teacher | {"task": other["task"]} for teacher, other in zip(cfg["teachers"], cfg["teachers"][::-1])]
+    with pytest.raises(ValueError, match="is not role"):
+        rounds.check_config(cfg | {"teachers": swapped})
+    with pytest.raises(ValueError, match="distinct roles"):
+        rounds.check_config(cfg | {"teachers": cfg["teachers"][:1] * 2})
+    history = [{"a": 0.5, "b": 0.5}, {"a": 0.6, "b": 0.4}, {"a": 0.6, "b": 0.5}, {"a": 0.55, "b": 0.5}]
+    assert not rounds.stalled(history, 3) and rounds.stalled(history + [{"a": 0.6, "b": 0.5}], 3)
+    assert not rounds.stalled(history + [{"a": 0.6, "b": 0.55}], 3) and not rounds.stalled(history * 3, 0)
 
 
 class FakeDistiller:
@@ -214,7 +224,7 @@ class FakeDistiller:
         self.step, self.student, self.trained, self.loaded = 0, object(), [], []
         FakeDistiller.instances.append(self)
 
-    def train(self, buffer, num_steps, log, metric, round_index) -> dict:
+    def train(self, buffer, num_steps, log, round_index) -> dict:
         self.step += num_steps
         self.trained.append(round_index)
         log({"round": round_index, "step": self.step})
@@ -233,41 +243,48 @@ class FakeDistiller:
 
 @pytest.fixture
 def fake_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
-    """rounds.py with fake collection, buffer, models, export, logger and selection (SR scripted per checkpoint)."""
+    """rounds.py with three teachers and fake collection, buffer, models, export, logger and selection (SR scripted
+    per checkpoint and role, roles i1 i2 i3)."""
     calls = SimpleNamespace(collect=[], export=[], selection=[], logged=[])
-    sr = {"ckpt60k": 0.6, "round_0": 0.7, "round_1": 0.65, "round_2": 0.7, "round_3": 0.9}
+    sr = {"checkpoint-60000": (0.6, 0.6, 0.6), "round_0": (0.7, 0.6, 0.6), "round_1": (0.65, 0.6, 0.7),
+          "round_2": (0.7, 0.6, 0.6), "round_3": (0.6, 0.6, 0.7), "round_4": (0.7, 0.55, 0.65),
+          "round_5": (0.9, 0.9, 0.9)}
 
     def selection(cfg, checkpoint, results_root, roles):
         calls.selection.append((Path(checkpoint).name, results_root.name, tuple(roles)))
-        return {role: sr[Path(checkpoint).name.replace("checkpoint-60000", "ckpt60k")] for role in roles}
+        return dict(zip(roles, sr[Path(checkpoint).name]))
     monkeypatch.setattr(rounds, "RUNS_ROOT", tmp_path / "runs")
     monkeypatch.setattr(rounds, "STUDENTS_ROOT", tmp_path / "students")
     monkeypatch.setattr(rounds, "collect", lambda jobs, r, pairing: calls.collect.append((r, jobs)) or [])
     monkeypatch.setattr(rounds, "ObservationBuffer", lambda: SimpleNamespace(add=None, holdout=lambda n, s: ([], [])))
     monkeypatch.setattr(rounds, "Distiller", FakeDistiller)
-    monkeypatch.setattr(rounds, "OfflineMetric", lambda *args: "metric")
     monkeypatch.setattr(rounds, "export_student", lambda s, out, info, base: calls.export.append(out.name) or out.mkdir(
         parents=True))
     monkeypatch.setattr(rounds, "RunLogger", lambda run_dir, cfg: SimpleNamespace(log=calls.logged.append))
     monkeypatch.setattr(rounds, "selection", selection)
     FakeDistiller.instances = []
-    cfg = load_config(CONFIGS / "level2_single.yaml", "dmd_fm")
-    cfg = cfg | {"max_rounds": 5, "train": cfg["train"] | {"batch_size": 8, "steps_per_round": 10}}
+    cfg = load_config(CONFIG)
+    third = {"task": "T3", "role": "i3", "label": "expert_i3", "checkpoint": "c3"}
+    cfg = cfg | {"max_rounds": 6, "teachers": [*cfg["teachers"], third],
+                 "train": cfg["train"] | {"steps_per_round": 10}}
     return SimpleNamespace(cfg=cfg, calls=calls, tmp_path=tmp_path)
 
 
-def test_rounds_stop_after_two_rounds_without_improvement(fake_run: SimpleNamespace) -> None:
-    """SR 0.6 (init) → 0.7, 0.65, 0.7: rounds 1 and 2 do not beat 0.7, so it stops after round 2 of 5; best round 0."""
+def test_rounds_stop_after_patience_rounds_without_improvement(fake_run: SimpleNamespace) -> None:
+    """Init 0.6 on all three roles; round 0 improves i1, round 1 improves i3; rounds 2–4 beat no role's best, so with
+    patience 3 the run stops after round 4 of 6. The best mean-SR round is 1."""
     rounds.Run(fake_run.cfg).execute()
-    calls, run_dir = fake_run.calls, fake_run.tmp_path / "runs" / "level2_single_dmd_fm"
+    calls, roles = fake_run.calls, ("i1", "i2", "i3")
+    run_dir = fake_run.tmp_path / "runs" / fake_run.cfg["run_id"]
     progress = json.loads((run_dir / "rounds.json").read_text())
-    assert progress["rounds_run"] == 3 and progress["best_round"] == 0 and progress["init"] == {"i1": 0.6, "i2": 0.6}
-    assert [r for r, _ in calls.collect] == [0, 1, 2] and calls.export == ["round_0", "round_1", "round_2"]
-    assert FakeDistiller.instances[0].trained == [0, 1, 2]
-    assert calls.selection[0] == ("checkpoint-60000", "ckpt60k", ("i1", "i2"))  # init: roles + extra roles, shared
-    assert calls.selection[-1] == ("round_0", "round_0", ("i2",))  # forgetting check of the best student
-    assert [p.name for p in (run_dir / "state").iterdir()] == ["round_2"]
-    assert {"round": 1, "step": 20, "selection/i1": 0.65} in calls.logged
+    assert progress["rounds_run"] == 5 and progress["best_round"] == 1
+    assert progress["init"] == {"i1": 0.6, "i2": 0.6, "i3": 0.6}
+    assert [(r, len(jobs)) for r, jobs in calls.collect] == [(0, 6), (1, 3), (2, 3), (3, 3), (4, 3)]
+    assert calls.export == [f"round_{r}" for r in range(5)] and FakeDistiller.instances[0].trained == [0, 1, 2, 3, 4]
+    assert calls.selection[0] == ("checkpoint-60000", "ckpt60k", roles)  # initial student: shared results
+    assert calls.selection[-1] == ("round_4", "round_4", roles)
+    assert [p.name for p in (run_dir / "state").iterdir()] == ["round_4"]
+    assert {"round": 1, "step": 20, "selection/i1": 0.65, "selection/i2": 0.6, "selection/i3": 0.7} in calls.logged
 
 
 def test_rounds_rerun_skips_finished_stages(fake_run: SimpleNamespace) -> None:
@@ -276,9 +293,9 @@ def test_rounds_rerun_skips_finished_stages(fake_run: SimpleNamespace) -> None:
     calls_before = len(fake_run.calls.export)
     rounds.Run(fake_run.cfg).execute()
     assert len(fake_run.calls.export) == calls_before and FakeDistiller.instances[1:] == []
-    (fake_run.tmp_path / "students" / "level2_single_dmd_fm" / "round_2").rmdir()
+    (fake_run.tmp_path / "students" / fake_run.cfg["run_id"] / "round_4").rmdir()
     rounds.Run(fake_run.cfg).execute()
-    assert fake_run.calls.export[-1] == "round_2" and FakeDistiller.instances[-1].loaded == ["round_2"]
+    assert fake_run.calls.export[-1] == "round_4" and FakeDistiller.instances[-1].loaded == ["round_4"]
     assert FakeDistiller.instances[-1].trained == []
     with pytest.raises(ValueError, match="differs"):
         rounds.Run(fake_run.cfg | {"max_rounds": 4})

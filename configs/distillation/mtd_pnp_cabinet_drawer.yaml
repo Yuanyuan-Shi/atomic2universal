@@ -1,0 +1,42 @@
+# Multi-teacher distillation (MTD) on the pnp_cabinet_drawer task set: Expert I1 (cabinet) and Expert I2 (drawer)
+# -> checkpoint-60000, task-balanced batches, DMD + FM. These are the settings of the two-teacher pilot of 2026-10-24
+# (results: distillation/gr00t/RESULTS.md). For K teachers, point `pairing` at a task set with K roles and list one
+# teacher per role; nothing else changes.
+# Run: flock -w 7200 <gpu.lock> conda run --no-capture-output -n a2u-policy python -m distillation.gr00t.rounds \
+#        --config configs/distillation/mtd_pnp_cabinet_drawer.yaml
+# null = placeholder; rounds.py refuses to start until every null is set.
+run_id: level3_mtd_pilot   # the pilot's run, export and test folders carry this id
+pairing: pnp_cabinet_drawer   # task set (configs/pairings/<name>.yaml): every teacher's role and task must be in it
+student:                # initial student, also the round-0 data policy; label names its shared collections/selections
+  label: ckpt60k
+  checkpoint: checkpoints/sft_joint/gr00t_n1-5/foundation_model_learning/target_posttraining/atomic_seen/checkpoint-60000
+teachers:               # one per task; router task id = the role's number (i1 -> 1); paths project-relative
+  - task: PickPlaceCounterToCabinet
+    role: i1
+    label: expert_i1
+    checkpoint: checkpoints/experts/PickPlaceCounterToCabinet/step_95
+  - task: PickPlaceDrawerToCounter
+    role: i2
+    label: expert_i2
+    checkpoint: checkpoints/experts/PickPlaceDrawerToCounter/step_100
+collection:
+  student_episodes: 20  # per role and round: episodes 0..19, seeds 200000 + round*1000 + episode
+  teacher_episodes: 20  # per teacher, round 0 only: episodes 20..39 on its own role (0 = none)
+distill:                # recommended settings of the Stage 3a validation (distillation/README.md)
+  alpha_dmd: 0.5
+  alpha_fm: 0.5
+  k_fake: 5
+  lambda_ida: 0.99
+  num_flow_steps: 4
+train:
+  lr: 3.0e-6            # user choice: lr 1e-5 moved single-teacher students far from the teacher (RESULTS.md)
+  batch_size: 16        # largest with >= 15% headroom (peak 74.1 GiB nvidia-smi; 2.1 s per update; RESULTS.md test 7)
+  steps_per_round: 500  # user choice; 2.1 s per update -> ~18 min
+  holdout: 100          # round-0 observations never trained on, split evenly over tasks (for offline_diag; 0 = none)
+  holdout_seed: 0
+  seed: 0
+max_rounds: 3
+patience: 3             # stop after this many rounds in which no task's selection SR beat its best so far
+selection:
+  num_episodes: 20      # seeds seed_start .. seed_start + 19, inside 1000-1019
+  seed_start: 1000

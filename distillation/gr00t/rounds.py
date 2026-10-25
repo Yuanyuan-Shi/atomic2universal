@@ -1,12 +1,13 @@
-"""Distillation rounds of one run (spec §5, Levels 1–3), from the project root in a2u-policy, on the GPU:
+"""Distillation rounds of one run, from the project root in a2u-policy, on the GPU:
   flock -w 7200 <gpu.lock> conda run --no-capture-output -n a2u-policy python -m distillation.gr00t.rounds \
-      --config configs/distillation/<level>.yaml [--variant <name>]
-Selection of the initial student (exported if perturbed) and reference policies, then per round r: collect (round r−1's
-export, or the data policy and each teacher at r = 0) → train steps_per_round updates on the whole buffer (models stay
-in memory; state/round_<r>/ is saved) → export to checkpoints/students/<run_id>/round_<r>/ → selection (run_baseline per
-role, ≤ 2 at a time by RAM) → log; stop when no role's SR beat its best (initial SR included) for 2 rounds in a row, or
-at max_rounds; the best mean-SR round is evaluated on the extra roles. Re-runs skip finished stages. Collections and
-selections of fixed checkpoints are shared between runs (distillation/runs/{collections,selection}/)."""
+      --config configs/distillation/<run>.yaml
+The config's K teachers each own one role of its task set (`pairing`); everything below loops over those roles.
+Selection of the initial student, then per round r: collect (round r−1's export on every role; at r = 0 the initial
+student on every role and each teacher on its own role) → train steps_per_round updates on the whole buffer (models
+stay in memory; state/round_<r>/ is saved) → export to checkpoints/students/<run_id>/round_<r>/ → selection
+(run_baseline per role, ≤ 2 at a time by RAM) → log; stop when no role's SR beat its best (initial SR included) for
+`patience` rounds in a row, or at max_rounds; the best mean-SR round is recorded. Re-runs skip finished stages.
+Collections and selections of fixed checkpoints are shared between runs (distillation/runs/{collections,selection}/)."""
 
 import argparse
 import json
@@ -14,6 +15,7 @@ import os
 import shutil
 import signal
 import sys
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -23,8 +25,8 @@ import wandb
 from distillation.gr00t.buffer import ObservationBuffer
 from distillation.gr00t.collect import DEFAULT_PORT, Job, collect, parallel_slots, run_parallel, sim_command
 from distillation.gr00t.export import export_student
-from distillation.gr00t.train import Distiller, OfflineMetric, checkpoint_path, load_config, stalled, unset_keys
-from evaluation.config import PROJECT_ROOT
+from distillation.gr00t.train import Distiller, load_config, project_path, teacher_roles, unset_keys
+from evaluation.config import PROJECT_ROOT, load_pairing
 from expert_training.wandb_log_eval import load_dotenv
 
 RUNS_ROOT = PROJECT_ROOT / "distillation" / "runs"
@@ -34,27 +36,40 @@ SELECTION_SEEDS = range(1000, 1020)
 
 
 def check_config(cfg: dict[str, Any]) -> None:
-    """Raise on unset placeholders, selection seeds outside 1000–1019, or early stopping without a holdout."""
-    sel, train = cfg["selection"], cfg["train"]
+    """Raise on unset placeholders, selection seeds outside 1000–1019, or teachers that are not one per distinct role
+    of the task set with that role's task name."""
+    sel, roles = cfg["selection"], teacher_roles(cfg)
     errors = [f"{key} is unset" for key in unset_keys(cfg)]
     if not set(range(sel["seed_start"], sel["seed_start"] + sel["num_episodes"])) <= set(SELECTION_SEEDS):
         errors.append(f"selection seeds must lie in {SELECTION_SEEDS}")
-    if train["patience"] and not train["holdout"]:
-        errors.append("train.patience > 0 needs train.holdout > 0")
+    if not roles or len(set(roles)) != len(roles):
+        errors.append(f"teachers need one or more distinct roles, got {roles}")
+    tasks = load_pairing(cfg["pairing"])
+    errors += [f"teacher task {t['task']!r} is not role {t['role']!r} of {cfg['pairing']}" for t in cfg["teachers"]
+               if t["role"] not in tasks or tasks[t["role"]].name != t["task"]]
     if errors:
         raise ValueError(f"config {cfg['run_id']}: " + "; ".join(errors))
 
 
+def stalled(history: Sequence[Mapping[str, float]], patience: int) -> bool:
+    """True when no entry among the last `patience` exceeds, on any key, the best of all earlier entries (higher is
+    better); never with patience 0 or too short a history."""
+    if patience < 1 or len(history) <= patience:
+        return False
+    earlier, recent = history[:-patience], history[-patience:]
+    return not any(entry[key] > max(e[key] for e in earlier) for entry in recent for key in entry)
+
+
 def round_jobs(cfg: dict[str, Any], r: int) -> list[Job]:
     """Round r's collections: the current student on every role; in round 0 also each teacher on its role."""
-    spec, run_id = cfg["collection"], cfg["run_id"]
-    label, checkpoint = spec["policy"], cfg["checkpoints"][spec["policy"]]
+    spec, run_id, student = cfg["collection"], cfg["run_id"], cfg["student"]
+    label, checkpoint = student["label"], student["checkpoint"]
     if r > 0:
         label, checkpoint = f"{run_id}_round_{r - 1}", str(STUDENTS_ROOT / run_id / f"round_{r - 1}")
-    jobs = [Job(label, role, 0, spec["student_episodes"], checkpoint) for role in cfg["roles"]]
+    jobs = [Job(label, role, 0, spec["student_episodes"], checkpoint) for role in teacher_roles(cfg)]
     if r == 0 and spec["teacher_episodes"]:
-        jobs += [Job(teacher, role, spec["student_episodes"], spec["teacher_episodes"], cfg["checkpoints"][teacher])
-                 for role, teacher in cfg["teachers"].items()]
+        jobs += [Job(t["label"], t["role"], spec["student_episodes"], spec["teacher_episodes"], t["checkpoint"])
+                 for t in cfg["teachers"]]
     return jobs
 
 
@@ -78,10 +93,10 @@ class RunLogger:
     """Rows to <run dir>/train_log.jsonl, stdout and W&B (offline unless WANDB_API_KEY is in .env, never printed)."""
 
     def __init__(self, run_dir: Path, cfg: dict[str, Any]) -> None:
-        """Open the W&B run: project atomic2universal, group distill/<level>, named after the run."""
+        """Open the W&B run: project atomic2universal, group distill/<task set>, named after the run."""
         self.path = run_dir / "train_log.jsonl"
         load_dotenv(PROJECT_ROOT / ".env")
-        self.run = wandb.init(project="atomic2universal", group=f"distill/{cfg['level']}", name=cfg["run_id"],
+        self.run = wandb.init(project="atomic2universal", group=f"distill/{cfg['pairing']}", name=cfg["run_id"],
                               config=cfg, dir=run_dir, mode="online" if os.environ.get("WANDB_API_KEY") else "offline")
         self.run.define_metric("*", step_metric="step")
 
@@ -94,7 +109,7 @@ class RunLogger:
 
 
 class Run:
-    """One run: its directories, progress record (rounds.json), buffer, holdout and the lazily built distiller."""
+    """One run: its directories, progress record (rounds.json), buffer and the lazily built distiller."""
 
     def __init__(self, cfg: dict[str, Any]) -> None:
         """Create the run directory; a re-run must use the same config."""
@@ -106,7 +121,7 @@ class Run:
         config_path.write_text(json.dumps(cfg, indent=1))
         self.progress = json.loads(progress_path.read_text()) if progress_path.exists() else {"rounds": {}}
         self.logger, self.buffer = RunLogger(self.dir, cfg), ObservationBuffer()
-        self.held, self.metric, self.distiller, self.distiller_round = None, None, None, None
+        self.distiller, self.distiller_round = None, None
 
     def save_progress(self) -> None:
         """Write rounds.json atomically."""
@@ -121,30 +136,19 @@ class Run:
             self.distiller_round = self.distiller.load(self.dir / "state" / f"round_{r}")["round"]
         return self.distiller
 
-    def export(self, r: int | None) -> str:
-        """Export the student after round r (None: the initial student) unless it exists; return its path."""
-        out = STUDENTS_ROOT / self.cfg["run_id"] / ("init" if r is None else f"round_{r}")
+    def export(self, r: int) -> str:
+        """Export the student after round r unless it exists; return its path."""
+        out = STUDENTS_ROOT / self.cfg["run_id"] / f"round_{r}"
         if not out.exists():
-            distiller = self.distiller_at(-1 if r is None else r)
+            distiller = self.distiller_at(r)
             info = {"run_id": self.cfg["run_id"], "round": r, "step": distiller.step, "student": self.cfg["student"]}
-            export_student(distiller.student, out, info, checkpoint_path(self.cfg, self.cfg["student"]["init"]))
+            export_student(distiller.student, out, info, project_path(self.cfg["student"]["checkpoint"]))
         return str(out)
-
-    def initial_selection(self) -> dict[str, float]:
-        """Selection SR of the initial student on the roles and extra roles; also of each reference policy."""
-        cfg, init, perturbed = self.cfg, self.cfg["student"]["init"], self.cfg["student"]["perturb_scale"] > 0
-        self.progress["reference"] = {label: selection(cfg, cfg["checkpoints"][label], SHARED_SELECTION / label,
-                                      cfg["roles"]) for label in cfg["selection"]["reference_policies"]}
-        return selection(cfg, self.export(None) if perturbed else cfg["checkpoints"][init],
-                         self.dir / "selection" / "init" if perturbed else SHARED_SELECTION / init,
-                         cfg["roles"] + cfg["selection"]["extra_roles"])
 
     def train(self, r: int) -> dict[str, Any]:
         """Round r's training from the state after round r − 1; saves state/round_<r>/."""
-        train_cfg, distiller = self.cfg["train"], self.distiller_at(r - 1)
-        if self.held is not None and self.metric is None:
-            self.metric = OfflineMetric(distiller, *self.held, train_cfg["holdout_seed"], train_cfg["batch_size"])
-        result = distiller.train(self.buffer, train_cfg["steps_per_round"], self.logger.log, self.metric, r)
+        distiller = self.distiller_at(r - 1)
+        result = distiller.train(self.buffer, self.cfg["train"]["steps_per_round"], self.logger.log, r)
         distiller.save(self.dir / "state" / f"round_{r}", {"round": r})
         self.distiller_round = r
         return {**result, "step": distiller.step}
@@ -155,30 +159,30 @@ class Run:
         for directory in collect(round_jobs(cfg, r), r, cfg["pairing"]):
             self.buffer.add(directory)
         if r == 0 and cfg["train"]["holdout"]:
-            self.held = self.buffer.holdout(cfg["train"]["holdout"], cfg["train"]["holdout_seed"])
+            self.buffer.holdout(cfg["train"]["holdout"], cfg["train"]["holdout_seed"])
         if "train" not in record:
             record["train"] = self.train(r)
             self.save_progress()
             shutil.rmtree(self.dir / "state" / f"round_{r - 1}", ignore_errors=True)
-        record["selection"] = selection(cfg, self.export(r), self.dir / "selection" / f"round_{r}", cfg["roles"])
+        record["selection"] = selection(cfg, self.export(r), self.dir / "selection" / f"round_{r}",
+                                        teacher_roles(cfg))
         self.save_progress()
         self.logger.log({"round": r, "step": record["train"]["step"],
                          **{f"selection/{role}": sr for role, sr in record["selection"].items()}})
         return record["selection"]
 
     def execute(self) -> None:
-        """Initial selection, rounds until the early stop or max_rounds, then the best round's extra roles."""
-        cfg, roles = self.cfg, self.cfg["roles"]
-        self.progress["init"] = self.initial_selection()
+        """Selection of the initial student (shared results), then rounds until the early stop or max_rounds."""
+        cfg, student, roles = self.cfg, self.cfg["student"], teacher_roles(self.cfg)
+        self.progress["init"] = selection(cfg, student["checkpoint"], SHARED_SELECTION / student["label"], roles)
         self.save_progress()
-        history = [{role: self.progress["init"][role] for role in roles}]
+        history = [self.progress["init"]]
         for r in range(cfg["max_rounds"]):
             history.append(self.run_round(r))
-            if stalled(history, patience=2):
+            if stalled(history, cfg["patience"]):
                 break
-        best = int(np.argmax([np.mean([sr[role] for role in roles]) for sr in history[1:]]))
-        self.progress.update(best_round=best, rounds_run=len(history) - 1, best_extra_roles=selection(
-            cfg, self.export(best), self.dir / "selection" / f"round_{best}", cfg["selection"]["extra_roles"]))
+        best = int(np.argmax([np.mean(list(sr.values())) for sr in history[1:]]))
+        self.progress.update(best_round=best, rounds_run=len(history) - 1)
         self.save_progress()
 
 
@@ -186,9 +190,7 @@ def main() -> None:
     """Run (or resume) the configured run; SIGTERM/SIGHUP exit cleanly, so subprocesses and their servers stop."""
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--config", type=Path, required=True)
-    parser.add_argument("--variant", help="variant of the config (level2_single: dmd_fm or fm_only)")
-    args = parser.parse_args()
-    check_config(cfg := load_config(args.config, args.variant))
+    check_config(cfg := load_config(parser.parse_args().config))
     for signal_number in (signal.SIGTERM, signal.SIGHUP):
         signal.signal(signal_number, lambda number, frame: sys.exit(128 + number))
     Run(cfg).execute()

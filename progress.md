@@ -1,7 +1,7 @@
 # atomic2universal — Progress
 
 Living progress log. Update it at the end of every stage and remove content that no longer applies.
-**Last updated:** 2026-10-25, after Stage 3b (MTD on GR00T: validation pilot).
+**Last updated:** 2026-10-25, after the post-3b cleanup (validation-only code removed; MTD takes K teachers).
 
 ## Research question
 
@@ -22,8 +22,9 @@ experts into one student with multi-teacher distillation, MTD) better than **com
 | 2, Phases 1–5 | RL expert pipeline (StructRL/RLinf PPO, Sparse-RL) + workstation smoke test | Done |
 | 2, Phase 6 | Real expert training on one 8-GPU cluster node (Schmidt Sciences, `hw_node8`) | PickPlaceCounterToCabinet (run `20261019-0256-node8`, step_95) and PickPlaceDrawerToCounter (run `20261020-1728-node8`, step_100) trained and exported |
 | 2b | 100-episode evaluation, seeds 0–99, no video (workstation): experts vs baseline | Done (step0 runs dropped by user decision) |
-| 3a | MTD distillation code (`distillation/`, shared with GR00T), 90 tests, 2-D toy validation (CPU) | Done (commit `9e3324a`) |
+| 3a | MTD distillation code (`distillation/`, shared with GR00T), 90 tests, 2-D Gaussian-mixture validation (CPU) | Done (commit `9e3324a`) |
 | 3b | MTD on GR00T (`distillation/gr00t/`): integration tests, Levels 1–3 pilot, test of the Level 3 students | Done |
+| Cleanup | Removed the 2-D validation and Levels 1–2 (code, configs, runs, students; git tag `pre-cleanup`); configs list K teachers; early stop after 3 rounds without a new best on any task | Done (2026-10-25) |
 | later | Other experts (same command, different `--task`); full-scale MTD run | Not started |
 
 ## Stage 3b: MTD on GR00T (`distillation/gr00t/RESULTS.md`)
@@ -31,13 +32,11 @@ experts into one student with multi-teacher distillation, MTD) better than **com
 - **Pipeline:** the shared Stage 3a code runs unchanged on GR00T's action head (`GR00TVelocity`, bitwise equal to
   `get_action` per observation); frozen bf16 backbone on the fly (raw-observation buffer, 0.59 MB/obs); rounds of
   collect → train → export → select (`rounds.py`). Batch 16, 2.1 s per DMD + FM update (0.6 s FM only), 70 GB peak.
-- **Level 1 (recovery):** ckpt-60000 perturbed (scale 0.2: 0.60/0.70 → 0.30/0.40) recovers to 0.70/0.65 in 300 updates
-  (closed loop: pass). The spec's same-noise offline distance rises instead (0.81 → 0.96): the losses match
-  distributions, not the noise→action map.
-- **Level 2 (Expert I1 → ckpt-60000, lr 1e-5):** selection stays 0.55–0.65 for DMD + FM and FM only; no forgetting on
-  i2. Offline, lr 1e-5 distorts the student far more than the expert differs from ckpt-60000 (energy 0.4–0.8 vs 0.11);
-  a tuning sweep shows the distortion scales with lr.
-- **Level 3 (both experts, DMD + FM, lr 3e-6, 3 × 500 updates), test on seeds 0–99 (100 episodes per task):**
+- **Levels 1–2** (recovery of a damaged ckpt-60000; Expert I1 alone) validated the pipeline and were removed in the
+  cleanup (tag `pre-cleanup`). Lessons kept: the same-noise offline distance cannot register distribution matching
+  (use `offline_diag.py`'s energy distance), and the student's drift from the teacher grows with lr (hence 3e-6).
+- **MTD pilot (both experts, DMD + FM, lr 3e-6, 3 × 500 updates; `configs/distillation/mtd_pnp_cabinet_drawer.yaml`),
+  test on seeds 0–99 (100 episodes per task):**
 
 | | cabinet | drawer |
 |---|---|---|
@@ -47,8 +46,8 @@ experts into one student with multi-teacher distillation, MTD) better than **com
 
   Our ckpt-60000 on these seeds: 67% / 59%. Paired: 1,000 updates drawer +13 (p = 0.019), 1,500 updates cabinet +12
   (p = 0.012, level with Expert I1). Best mean 72% (1,000 updates) ≈ 85% of the experts' mean gain.
-- Shared code and toy: `distillation/{interfaces,flow_utils,dmd_loss,router,step}.py`, `distillation/toy/RESULTS.md`
-  (DMD alone collapses modes; FM alone compounds the 4-step bias; the mix works best).
+- Shared code: `distillation/{interfaces,flow_utils,dmd_loss,router,step}.py`; recommended settings in
+  `distillation/README.md` (DMD alone collapses modes; FM alone compounds the 4-step bias; the mix works best).
 
 ## Stage 2b: 100-episode evaluation (seeds 0–99, `eval_n100/`)
 
@@ -111,13 +110,14 @@ conda run -n a2u-sim python -m baseline_eval.run_baseline --pairing pnp_cabinet_
 python -m http.server 8080 --directory baseline_eval/results                                # baseline report
 python -m http.server 8081 --directory expert_training/results/PickPlaceCounterToCabinet   # /_smoke, /step_0
 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True ~/anaconda3/envs/a2u-policy/bin/python -m distillation.gr00t.rounds \
-  --config configs/distillation/level3_mtd_pilot.yaml                                       # MTD (see distillation/README.md)
+  --config configs/distillation/mtd_pnp_cabinet_drawer.yaml                                 # MTD (see distillation/README.md)
 ```
 
 ## Open items
 
-1. The Level 3 pilot already reaches expert level on one task per student; decide whether to train the experts
+1. The MTD pilot already reaches expert level on one task per student; decide whether to train the experts
    longer before the full-scale run (their gains are small: energy distance 0.11 from ckpt-60000).
 2. Add the other three pick-and-place tasks (look up their Table 11 references first).
 3. Full-scale MTD: more rounds and episodes, a lower lr (3e-6 or below), and the energy distance plus 100-episode tests
-   to choose students; the 1,000 vs 1,500-update difference per task is not settled at 100 episodes.
+   to choose students; the 1,000 vs 1,500-update difference per task is not settled at 100 episodes. For K tasks: a
+   task set with K roles in `configs/pairings/` and one teacher per role in the run config.
