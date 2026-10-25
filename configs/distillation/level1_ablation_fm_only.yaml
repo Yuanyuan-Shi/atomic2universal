@@ -1,0 +1,48 @@
+# Level 1 ablation (user-approved addition to spec §7): FM only (alpha_DMD 0), otherwise identical to
+# level1_recovery.yaml (same perturbed start, data, holdout and seeds), 300 updates without early stop, offline only.
+# It ran with an equivalent Distiller driver; this command reproduces it (prints rows; saves fake/optimizer states too):
+#   python -m distillation.gr00t.train --config configs/distillation/level1_ablation_fm_only.yaml --steps 300 \
+#     --collections distillation/runs/collections/ckpt60k/i1/round_0 distillation/runs/collections/ckpt60k/i2/round_0 \
+#     --save distillation/runs/level1_ablation_fm_only/state
+# then distillation.gr00t.offline_diag on the saved student.pt (distillation/gr00t/RESULTS.md, Level 1).
+run_id: level1_ablation_fm_only
+level: level1
+pairing: pnp_cabinet_drawer
+roles:
+- i1
+- i2
+checkpoints:
+  ckpt60k: checkpoints/sft_joint/gr00t_n1-5/foundation_model_learning/target_posttraining/atomic_seen/checkpoint-60000
+student:
+  init: ckpt60k
+  perturb_scale: 0.2
+  perturb_seed: 0
+teachers:
+  i1: ckpt60k
+  i2: ckpt60k
+collection:
+  policy: ckpt60k
+  student_episodes: 20
+  teacher_episodes: 0
+distill:
+  alpha_dmd: 0.0
+  alpha_fm: 1.0
+  k_fake: 5
+  lambda_ida: 0.99
+  num_flow_steps: 4
+train:
+  lr: 1.0e-05
+  batch_size: 16
+  steps_per_round: 300
+  eval_every: 100
+  patience: 0
+  holdout: 200
+  holdout_seed: 0
+  seed: 0
+max_rounds: 1
+selection:
+  num_episodes: 20
+  seed_start: 1000
+  reference_policies:
+  - ckpt60k
+  extra_roles: []

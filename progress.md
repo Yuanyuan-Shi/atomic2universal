@@ -1,7 +1,7 @@
 # atomic2universal — Progress
 
 Living progress log. Update it at the end of every stage and remove content that no longer applies.
-**Last updated:** 2026-10-23, after Stage 3a (MTD distillation code + 2-D toy validation).
+**Last updated:** 2026-10-25, after Stage 3b (MTD on GR00T: validation pilot).
 
 ## Research question
 
@@ -23,18 +23,32 @@ experts into one student with multi-teacher distillation, MTD) better than **com
 | 2, Phase 6 | Real expert training on one 8-GPU cluster node (Schmidt Sciences, `hw_node8`) | PickPlaceCounterToCabinet (run `20261019-0256-node8`, step_95) and PickPlaceDrawerToCounter (run `20261020-1728-node8`, step_100) trained and exported |
 | 2b | 100-episode evaluation, seeds 0–99, no video (workstation): experts vs baseline | Done (step0 runs dropped by user decision) |
 | 3a | MTD distillation code (`distillation/`, shared with GR00T), 90 tests, 2-D toy validation (CPU) | Done (commit `9e3324a`) |
-| later | Other experts (same command, different `--task`); MTD on the GR00T experts | Not started |
+| 3b | MTD on GR00T (`distillation/gr00t/`): integration tests, Levels 1–3 pilot, test of the Level 3 students | Done |
+| later | Other experts (same command, different `--task`); full-scale MTD run | Not started |
 
-## Stage 3a: distillation toy (`distillation/toy/RESULTS.md`)
+## Stage 3b: MTD on GR00T (`distillation/gr00t/RESULTS.md`)
 
-- Shared code: `distillation/{interfaces,flow_utils,dmd_loss,router,step}.py`. Paper convention (τ = 1 noise) for the
-  method math; only `flow_utils.py` converts from GR00T's native one. `distill_step` fixes the update order for GR00T.
-- Toy (exact GMM teachers, one seed): the spec's DMD + FM (α 0.5/0.5, λ_IDA 0.99, K_ψ 1) **fails** the pass bar
-  (W2 0.076/0.074 vs. 4-step teacher 0.091/0.093 and initial 0.19/0.16; success 0.79/0.70). With **K_ψ = 5** W2 drops to
-  0.046–0.057, about 2× better than the 4-step teacher; no setting clearly passes all readings of the bar.
-- DMD only collapses each mode (success 0.97 = collapse, not quality); FM only copies and compounds the 4-step
-  teacher's bias (W2 ≈ 0.15); λ_IDA ≤ 0.9 drifts off the modes, λ_IDA = 0 diverges (no NaN — watch `loss_fake`).
-- **Recommended for GR00T:** α_DMD = α_FM = 0.5, K_ψ = 5, λ_IDA ∈ {0.99, 1}; log `loss_fake` and `vdiff_norm`.
+- **Pipeline:** the shared Stage 3a code runs unchanged on GR00T's action head (`GR00TVelocity`, bitwise equal to
+  `get_action` per observation); frozen bf16 backbone on the fly (raw-observation buffer, 0.59 MB/obs); rounds of
+  collect → train → export → select (`rounds.py`). Batch 16, 2.1 s per DMD + FM update (0.6 s FM only), 70 GB peak.
+- **Level 1 (recovery):** ckpt-60000 perturbed (scale 0.2: 0.60/0.70 → 0.30/0.40) recovers to 0.70/0.65 in 300 updates
+  (closed loop: pass). The spec's same-noise offline distance rises instead (0.81 → 0.96): the losses match
+  distributions, not the noise→action map.
+- **Level 2 (Expert I1 → ckpt-60000, lr 1e-5):** selection stays 0.55–0.65 for DMD + FM and FM only; no forgetting on
+  i2. Offline, lr 1e-5 distorts the student far more than the expert differs from ckpt-60000 (energy 0.4–0.8 vs 0.11);
+  a tuning sweep shows the distortion scales with lr.
+- **Level 3 (both experts, DMD + FM, lr 3e-6, 3 × 500 updates), test on seeds 0–99 (100 episodes per task):**
+
+| | cabinet | drawer |
+|---|---|---|
+| Paper Table 11 (checkpoint SFT-60000) | 63% | 50% |
+| 500 / 1,000 / 1,500 updates | 71% / 72% / 79% | 67% / 72% / 63% |
+| Experts after single-task RL | 78% | 69% |
+
+  Our ckpt-60000 on these seeds: 67% / 59%. Paired: 1,000 updates drawer +13 (p = 0.019), 1,500 updates cabinet +12
+  (p = 0.012, level with Expert I1). Best mean 72% (1,000 updates) ≈ 85% of the experts' mean gain.
+- Shared code and toy: `distillation/{interfaces,flow_utils,dmd_loss,router,step}.py`, `distillation/toy/RESULTS.md`
+  (DMD alone collapses modes; FM alone compounds the 4-step bias; the mix works best).
 
 ## Stage 2b: 100-episode evaluation (seeds 0–99, `eval_n100/`)
 
@@ -46,7 +60,7 @@ experts into one student with multi-teacher distillation, MTD) better than **com
 - Both experts gain ~10 points, but the unpaired Newcombe CIs (the spec's method) include 0. The runs
   share seeds, so a paired view is sharper: cabinet expert-only 13 vs baseline-only 2 seeds (exact
   McNemar p = 0.007), drawer 20 vs 10 (p = 0.10). Not in `comparison.md`; an option for the write-up.
-- The 10-episode numbers below were optimistic for the experts (9/10, 8/10) and pessimistic for the
+- The earlier 10-episode numbers were optimistic for the experts (9/10, 8/10) and pessimistic for the
   baseline (6/10, 5/10). Baseline 67% / 59% vs the paper's 63% / 50%.
 - The experts were not picked by the planned selection on seeds 1000–1019 (step_95 / step_100 came
   from the cluster runs), so these are not yet "selected checkpoint" final-test numbers.
@@ -54,40 +68,14 @@ experts into one student with multi-teacher distillation, MTD) better than **com
   41 + 48 min); ~19 s per success and ~38 s per failure (750 steps). Video costs almost nothing extra.
 - Files: `eval_n100/comparison.md`, `eval_n100/comparison_table.tex` (`expert_training/compare_models.py`).
 
-## Baseline (Stage 1c, seeds 0–9, 10 episodes, checkpoint-60000)
-
-| Task | Success | 95% CI | Paper (Table 11) | Failures |
-|---|---|---|---|---|
-| PickPlaceCounterToCabinet | 6/10 | [31%, 83%] | 63% | 3 no grasp, 1 placed outside |
-| PickPlaceDrawerToCounter | 5/10 | [24%, 76%] | 50% | 5 no grasp (drawer starts open) |
-
-Grasping thin or awkward objects is the bottleneck for both.
-
-## RL expert (seeds 0–9, 10 episodes; report section "RL Expert closed-loop evaluation")
-
-| Task | Checkpoint | Success | 95% CI | Baseline | Failures |
-|---|---|---|---|---|---|
-| PickPlaceCounterToCabinet | `checkpoints/experts/PickPlaceCounterToCabinet/step_95` | 9/10 | [60%, 98%] | 6/10 | seed 3 no grasp (cheese grater) |
-| PickPlaceDrawerToCounter | `checkpoints/experts/PickPlaceDrawerToCounter/step_100` | 8/10 | [49%, 94%] | 5/10 | seed 4 no grasp (tongs); seed 6 base drives sideways off the drawer early, no grasp (ladle) |
-
-On the six seeds both solve, cabinet step_95 is faster (mean 248 vs 315 steps). The drawer expert's
-seed-6 failure starts with the base driving sideways off the drawer (the baseline stays put). Results:
-`expert_training/results/<Task>/step_<N>/` (with videos); the report reads which expert evaluation to
-show from `configs/eval/rl_experts.yaml`.
-
-## Stage 2 so far (PickPlaceCounterToCabinet)
+## Stage 2: RL experts (superseded 10-episode numbers are in `baseline_eval/results/report.html`)
 
 - **Recipe (StructRL Sparse-RL):** PPO with +1 at first success (`dense_reward` off, `done_shift` on),
   GAE 0.99/0.95, clip 0.2, 1 epoch, AdamW lr 1e-5 (value 2e-5), chunk 16, `flow_sde` noise 0.5.
-  Trains the **action head (1.069 B) + a new value head (4.3 M)**; the VLM (1.655 B) is frozen, the
-  same split the SFT used (checked: all 585 VLM tensors of checkpoint-60000 equal NVIDIA's base model).
-- **Smoke run** (`expert_training/runs/PickPlaceCounterToCabinet/20261016-1331-workstation`): 3 iterations
-  × 8 rollouts (2 envs × 4 epochs), 16/24 rollouts succeeded, losses finite, ~220 s/iteration.
-- **10-episode comparison, seeds 0–9:** Stage 1c baseline 6/10, **step_0** control (checkpoint-60000 →
-  RLinf load → bf16 → export; bit-identical to the bf16 eval weights) 7/10, **step_3** smoke expert
-  7/10. No broken export; step_0 is not clearly different from the baseline, so the baseline stays
-  the reference. Not an RL result (3 iterations).
-- Exports: `checkpoints/experts/PickPlaceCounterToCabinet/step_{0,3}/` (bf16, no value head).
+  Trains the **action head (1.069 B) + a new value head (4.3 M)**; the VLM (1.655 B) stays frozen (all three
+  checkpoints share a bitwise-identical backbone). RL changed the action head by ≤ 0.008 per weight.
+- Experts: `checkpoints/experts/PickPlaceCounterToCabinet/step_95`, `checkpoints/experts/PickPlaceDrawerToCounter/step_100`
+  (bf16, no value head). 10-episode evals: `expert_training/results/<Task>/step_<N>/`.
 
 ## Facts to carry forward
 
@@ -122,12 +110,14 @@ conda run -n a2u-sim python -m baseline_eval.run_baseline --pairing pnp_cabinet_
   --results-root expert_training/results/<Task>/<label> --launch-server
 python -m http.server 8080 --directory baseline_eval/results                                # baseline report
 python -m http.server 8081 --directory expert_training/results/PickPlaceCounterToCabinet   # /_smoke, /step_0
+PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True ~/anaconda3/envs/a2u-policy/bin/python -m distillation.gr00t.rounds \
+  --config configs/distillation/level3_mtd_pilot.yaml                                       # MTD (see distillation/README.md)
 ```
 
 ## Open items
 
-1. Decide whether the ~10-point expert gains are enough to distill from, or train longer / select
-   checkpoints on seeds 1000–1019 first (the gains are not significant with unpaired CIs).
+1. The Level 3 pilot already reaches expert level on one task per student; decide whether to train the experts
+   longer before the full-scale run (their gains are small: energy distance 0.11 from ckpt-60000).
 2. Add the other three pick-and-place tasks (look up their Table 11 references first).
-3. Before the GR00T MTD run: wrap the GR00T action head as a `VelocityModel` (cached backbone features as `cond`,
-   t-bucketing inside the model) and confirm K_ψ = 5 / λ_IDA on a second toy seed if cheap.
+3. Full-scale MTD: more rounds and episodes, a lower lr (3e-6 or below), and the energy distance plus 100-episode tests
+   to choose students; the 1,000 vs 1,500-update difference per task is not settled at 100 episodes.

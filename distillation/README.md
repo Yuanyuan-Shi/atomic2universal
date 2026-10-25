@@ -6,7 +6,7 @@ teacher samples, and IDA (the fake network is pulled toward the student after ea
 project question: is specialize-then-combine better than combine-then-train?
 
 The shared modules are written for the GR00T action head and run unchanged there. Stage 3a validates them on a
-2-D toy problem with exact Gaussian-mixture teachers (`toy/`).
+2-D toy problem with exact Gaussian-mixture teachers (`toy/`); Stage 3b connects them to GR00T N1.5 (`gr00t/`).
 
 ## Conventions
 
@@ -28,6 +28,8 @@ The shared modules are written for the GR00T action head and run unchanged there
 | `tests/` | pytest validation (spec tests 1–11, with negative controls) |
 | `toy/` | 2-D toy: exact GMM teachers, MLP student, metrics, plots, pretraining, training, `RESULTS.md`, notebook |
 | `toy/runs/` | toy checkpoints and JSON logs (git-ignored; regenerate with the commands below) |
+| `gr00t/` | GR00T N1.5: `wrapper.py` (action head as a `VelocityModel`), `features.py` (shared frozen backbone), `export.py`, `buffer.py` (raw-observation buffer), `collect.py`, `train.py` (`Distiller`), `rounds.py` (collect → train → export → select), `offline_diag.py`, `RESULTS.md` |
+| `runs/` | GR00T collections, selection results, run logs and states (git-ignored); students go to `checkpoints/students/` |
 
 The shared modules never import `toy/`.
 
@@ -46,3 +48,17 @@ $PY/jupyter nbconvert --to notebook --execute --inplace distillation/toy/walkthr
 ```
 
 Results, reference levels and the recommended settings for the GR00T runs are in `toy/RESULTS.md`.
+
+## GR00T runs (Stage 3b; GPU, env `a2u-policy`; rollouts in `a2u-sim` through `run_baseline`'s policy server)
+
+```bash
+POLICY_PY=~/anaconda3/envs/a2u-policy/bin/python
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+$POLICY_PY -m pytest distillation/tests -q                                     # + GPU integration tests when CUDA is visible
+$POLICY_PY -m distillation.gr00t.rounds --config configs/distillation/level1_recovery.yaml
+$POLICY_PY -m distillation.gr00t.rounds --config configs/distillation/level2_single.yaml --variant dmd_fm   # or fm_only
+$POLICY_PY -m distillation.gr00t.rounds --config configs/distillation/level3_mtd_pilot.yaml
+```
+
+A re-run resumes (finished collections, trainings and selections are skipped). Recon notes: `docs/distill_gr00t_notes.md`;
+results: `gr00t/RESULTS.md`.

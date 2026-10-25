@@ -397,3 +397,20 @@ torch build) cannot target sm_103, and flash-attn's build has no PTX option, so 
 - Deviations from the Stage 3a spec are listed in `distillation/toy/RESULTS.md`: pretraining base retuned (shift 0.25,
   σ × 1.4) to reach ~55% initial success, mode coverage measured in step-1 coordinates, and the pass criterion read
   three ways because the literal 80% W2 bar sits at the n = 2,000 noise floor.
+
+## Stage 3b: distillation on GR00T (2026-10-24)
+
+- Training, features, export, the offline diagnostic and all tests run in the existing eval env **`a2u-policy`**
+  (`~/anaconda3/envs/a2u-policy`: the GR00T fork @9d7d7a9 that the policy server uses, torch 2.7.1+cu128, flash-attn
+  2.8.3, wandb 0.25.0, accelerate 1.15.0). Rollouts (collection and selection) run in **`a2u-sim`** through
+  `baseline_eval.run_baseline`'s policy server, as before. `a2u-rl-blackwell` is not used (StructRL's GR00T copy differs
+  from the eval code, and its `import wandb` fails). No package was installed or changed in any env.
+- Run `rounds.py` with `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`: the trainer stays resident (≈ 45 GiB) while
+  two policy servers and sims run during collection and selection (Phase C test 7).
+- One GPU job at a time was enforced with `flock` on a lock file around every GPU command. Collection and selection
+  run 2 rollout processes (one server each) when `MemAvailable` ≥ 20 GB (Stage 2b itself ran serially, so this rule is
+  new; measured peak RSS 5.0 GB sim + 2.9 GB server per process).
+- W&B runs offline (no `.env`); offline runs are in `distillation/runs/<run_id>/wandb/` (`wandb sync` to upload).
+- Disk: one exported student is 5.45 GB (`checkpoints/students/`, git-ignored); a run's resume state is ≈ 26 GB
+  (`distillation/runs/<run_id>/state/`, the previous round's state is deleted).
+- Deviations from the Stage 3b spec and user decisions are listed in `distillation/gr00t/RESULTS.md` ("Deviations").

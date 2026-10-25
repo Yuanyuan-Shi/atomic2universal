@@ -1,0 +1,45 @@
+# Level 2 (spec §8): single teacher. Expert I1 -> checkpoint-60000 on task I1 only; two variants that differ only in
+# the loss weights. After the last round the best student is also evaluated on I2 (forgetting check).
+# Run: flock -w 7200 <gpu.lock> conda run --no-capture-output -n a2u-policy python -m distillation.gr00t.rounds \
+#        --config configs/distillation/level2_single.yaml --variant dmd_fm   (then --variant fm_only)
+# null = placeholder; rounds.py refuses to start until every null is set.
+run_id: level2_single
+level: level2
+pairing: pnp_cabinet_drawer
+roles: [i1]
+checkpoints:            # policy label -> checkpoint dir (project-relative); labels also name the shared collections
+  ckpt60k: checkpoints/sft_joint/gr00t_n1-5/foundation_model_learning/target_posttraining/atomic_seen/checkpoint-60000
+  expert_i1: checkpoints/experts/PickPlaceCounterToCabinet/step_95
+student:
+  init: ckpt60k
+  perturb_scale: 0.0    # no perturbation
+  perturb_seed: 0
+teachers: {i1: expert_i1}   # role -> teacher label (router: task id 1)
+collection:
+  policy: ckpt60k       # data policy of round 0; later rounds collect with the previous round's student
+  student_episodes: 20  # per role and round: episodes 0..19, seeds 200000 + round*1000 + episode
+  teacher_episodes: 20  # per role, round 0 only: episodes 20..39
+distill:                # distillation/toy/RESULTS.md recommended settings
+  alpha_dmd: 0.5
+  alpha_fm: 0.5
+  k_fake: 5
+  lambda_ida: 0.99
+  num_flow_steps: 4
+train:
+  lr: 1.0e-5
+  batch_size: 16        # Phase C test 7: largest with >= 15% headroom (peak 74.1 GiB nvidia-smi; 2.1 s per update)
+  steps_per_round: 500  # user choice after Level 1 (recovered in 300 steps); 2.1 s per update -> ~18 min
+  eval_every: 100       # offline distance to the teacher every N updates (logged only)
+  patience: 0           # 0 = fixed steps_per_round, no early stop within a round
+  holdout: 100          # round-0 observations held out for the offline distance (0 = none)
+  holdout_seed: 0
+  seed: 0
+max_rounds: 3
+selection:
+  num_episodes: 20      # seeds seed_start .. seed_start + 19, inside 1000-1019
+  seed_start: 1000
+  reference_policies: []
+  extra_roles: [i2]     # forgetting check: initial and best student on I2
+variants:
+  dmd_fm: {}                                    # run_id level2_single_dmd_fm
+  fm_only: {distill: {alpha_dmd: 0.0, alpha_fm: 1.0}}   # run_id level2_single_fm_only
